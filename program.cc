@@ -47,7 +47,6 @@ Program::Program ()
 
   basic = true;
   false_atom = 0;
-  disj  = false;
   disjProgramLparse=false;
   tight = false;
   hcf   = false;

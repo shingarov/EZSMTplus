@@ -1,0 +1,13 @@
+/dimacs-completion*.out
+/SMT*
+/Model*
+/*.o
+/ezsmtPlus
+/libsat.a
+/tools/z3
+/tools/cvc4
+/tools/gringo
+/tools/clingo
+/tools/reify
+*.preparsed
+*.ground

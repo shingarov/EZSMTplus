@@ -16,22 +16,17 @@ class Param{
   //parameters that can be passed at command line
   //or set by functions
   char config[100];
-  char file[512];
   char dirName[256];
   char cmodelsname[256];
   char dimacsFileName[512];
   char solverOutputFileName[512];
   int many; 
   bool manySet;
-  char files[10][512];
-  int numOfFiles;
   bool NLLogic;
   int extmany;
   bool sort;
-  SolverType sys; 
   bool rdcComp;
   bool mnmBd;
-  SMTSolver SMTsolver;
   LogicType SMTLogic;
   bool PrintExtAS;
   bool wf;
@@ -53,14 +48,11 @@ class Param{
   bool bmodes;
   bool shortr; 
   int numLFClauses;
-  bool printCycle;
   int forgetPercent; //percentage of learnt clauses to be forgottem when denial comes back from external solver. Default is 0. No clauses forgot.
   //_________________
   Param(){
     forgetPercent=0;
-	printCycle=false;
-	verifyMethod = MINSCC;
-	sys  = MINISAT;
+	verifyMethod;
 	numLFClauses=1;
 	dir = false;
 	timeout = 0;
@@ -81,11 +73,7 @@ class Param{
 	loopFormula = true;
 	loopFormula1 = false;
 	temp = false;
-	numOfFiles = 0;
 	strcpy(config,"\0");
-	strcpy(file,"\0");
-	for( int a = 0; a < 10; a++ )
-		strcpy(files[a],"\0");
 	strcpy(dirName,"\0");
 	strcpy(cmodelsname,"\0");
 	strcpy(dimacsFileName,"\0");
@@ -97,14 +85,11 @@ class Param{
 	nowellfounded=false; 
   }
   void finish(){
-	if(sys==SIMO)
-	  numLFClauses=1;
 	if(numLFClauses<0)
 	  numLFClauses=256;
 	if(many<0)
 	  many=1;
 	if(eloop){
-	  //	  loopFormula = true;
 	  eloopSwitch = false;
 	}
   }

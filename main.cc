@@ -185,244 +185,54 @@ using namespace std;
 Ctable ctable;
 bool Atom::change = false;
 bool Atom::conflict = false;
-void a_new_handler ()
-{
-  cerr << "operator new failed: out of memory" << endl;
-  exit(23);
+
+/* set parameters, equivalent to command line */
+static void set_parameters() {
+    /* how many models (default 1) */
+    ctable.cmodels.param.many = 0;
+    ctable.cmodels.param.manySet = true;
+    // cmodels.param.extmany = XXX;
+
+    /* SolverType (default MINISAT) */
+    // cmodels.param.sys = RELSAT/DIMACS_PRODUCE/SCC_LEVEL_RANKING/
+    //                     LEVEL_RANKING/SCC_LEVEL_RANKING_STRONG/
+    //                     LEVEL_RANKING_STRONG/CASP_DIMACS_PRODUCE/
+    //                     ZCHAFF/ASSAT_ZCHAFF/MINISAT/MINISAT1/
+    //                     BCIRCUIT/SIMO
+
+    /* rdcComp, mnmBd, PrintExtAS, NLLogic, sort, loopFormula, loopFormula1,
+     * temp, eloop, stat, cm_wfm, disj, disjProgramLparse, verifyMethod,
+     * out_f_c, timings, asparagus, dir, dirName, forgetPercent,
+     * timeout, heur, blah-blah-blah
+     */
+
+    strcpy(ctable.cmodels.param.cmodelsname, "ezsmtPlus");
+    strcpy(ctable.cmodels.param.config, "CONFIG");
 }
-static void timeOutHandler(int sig)
-{
-  switch (sig) {
-
-#ifndef _WIN32	// marcy
-  case SIGXCPU:
-#ifndef SHORT_OUT
-    ctable.cmodels.output.PrintStats();
-#else
-    ctable.cmodels.output.PrintStats();
-#endif
-    break;
-#endif
-  default:
-    fprintf(stderr, "Unknown event\n");
-    break;
-  }
-
-  exit (22);
-}
-
 
 int main (int argc, char *argv[])
 {
-
-
-  Timer mainTimer;
-  
-
-  set_new_handler (&a_new_handler);
   bool error = false;
- 
-
-
-
-  strcpy(ctable.cmodels.param.cmodelsname, &argv[0][0]);
-
-  strcpy(ctable.cmodels.param.config, "CONFIG");
-  
-  for (int c = 1; c < argc && !error; c++){
-    if (c+1<argc){
-      c=c+ctable.setSingleExecutionArgument(&argv[c][0],&argv[c+1][0]);
-    }
-    else
-      c=c+ctable.setSingleExecutionArgument(&argv[c][0],NULL);
-  }
-
-
-  //if the timeout was set then we will set the function for timeout
-  if(ctable.cmodels.param.timeout!=0)    
-     mainTimer.SetTimeout(ctable.cmodels.param.timeout, timeOutHandler);
-
-
-  //This is not possble at the moment unless we include
-  //clausification of loop formulas using many clauses
-  //  if(ctable.cmodels.sys == 3 & ctable.cmodels.le)
-    //    ctable.cmodels.sys =6; //here we force zchaff 
-  //with incremental learning to be our choice of a sat solver
-  
-	
-  //we find the path to cmodels and assume that config file is located there
-  if(strcmp(ctable.cmodels.param.config,"\0")==0){
-    char path_to_config[100];
-    int k=0; 
-    path_to_config[k]='\0';
-    int length = strlen(ctable.cmodels.param.cmodelsname);
-    int l = length-1;
-    while(l!=-1 && ctable.cmodels.param.cmodelsname[l]!='/'){
-      l--;
-    }
-    if(l>=0){
-      for( k= 0;k<=l;k++)
-	path_to_config[k]= ctable.cmodels.param.cmodelsname[k];
-      path_to_config[k]='\0';
-    }
-    strcat(path_to_config, "CONFIG");
-    strcpy(ctable.cmodels.param.config, path_to_config);
-  }
- 
-  if (error)
-    {
-      ctable.usage ();
-      return 1;
-    }
-  if(ctable.cmodels.output.asparagus==STANDARD)
-    cerr << "ezsmt version 2.0.0 (ezsmtPlus) Reading..."<<endl;;
-
-
-  if(ctable.cmodels.param.numOfFiles==0){
-	  ctable.usage ();
-  	  exit(1);
-  }
+  set_parameters(); 
 
   //preparsing
-  stringstream ss;
-  ss.clear();
-  ss.str("");
-  ss<<"$EZSMTPLUS/tools/pre-parser ";
-  for( int a = 0; a< ctable.cmodels.param.numOfFiles ; a++){
-	  if ( access( ctable.cmodels.param.files[a], F_OK ) == -1 ){
-		  cerr <<" *** Error: file "<<ctable.cmodels.param.files[a]<<" does not exist. ***"<<endl;
-		  exit(1);
-	  }
-
-	  ss<<ctable.cmodels.param.files[a]<<" ";
-  }
-  ss<<" > "<<ctable.cmodels.param.file<<".preparsed";
-
-  cerr<<endl<<"Running pre-parsing command: "<<ss.str().c_str()<<endl;;
-  system(ss.str().c_str());
-
-  //Check errors from preparsing output
-  ostringstream outputFile;
-  ss.clear();
-  ss.str("");
-  ss<<ctable.cmodels.param.file<<".preparsed";
-  ifstream in_file(ss.str().c_str());
-  outputFile <<in_file.rdbuf();
-  string outputFilelStr= outputFile.str();
-  in_file.close();
-  istringstream iss(outputFilelStr);
-  string line;
-  while(getline(iss,line)){
-  //if a error is read, output error message
-    	if(line.find("SYNTAX ERROR")!=string::npos){
-    	     cout << " *** Error during preparsing. See output file " <<ctable.cmodels.param.file<<".preparsed ***"<< endl;
-    	     exit(1);
-    	}
-  }
-
+  //manually do:
+  // ./tools/pre-parser INPUT > INPUT.preparsed
+  //then, grep for "SYNTAX ERROR"
 
   //grounding
-  ss.clear();
-  ss.str("");
-  ss<<"$EZSMTPLUS/tools/gringo "<<ctable.cmodels.param.file<<".preparsed"<<" > "<<ctable.cmodels.param.file<<".grounded";
-  cerr<<"Running grounding command: "<<ss.str().c_str()<<endl;;
-  system(ss.str().c_str());
+  //manually do:
+  // ./tools/gringp INPUT.preparsed > INPUT.ground
+  //then, grep for "ERROR: "
 
-
-  //Check errors from grounding output
-   ostringstream outputFile2;
-   ss.clear();
-   ss.str("");
-   ss<<ctable.cmodels.param.file<<".grounded";
-   ifstream in_file2(ss.str().c_str());
-   outputFile2 <<in_file2.rdbuf();
-   string outputFilelStr2= outputFile2.str();
-   in_file2.close();
-   istringstream iss2(outputFilelStr);
-   while(getline(iss2,line)){
-   //if a error is read, output error message
-     	if(line.find("error: ")!=string::npos  || line.find("ERROR: (gringo): ")!=string::npos){
-   	     cout << " *** Error during grounding. See output file " <<ctable.cmodels.param.file<<".grounded ***"<< endl;
-   	     exit(1);
-       }
-   }
-
-
-  strcat(ctable.cmodels.param.file, ".grounded");
-
-  ctable.cmodels.output.timerAll.start();
-
-  if(strlen(ctable.cmodels.param.file) > 0)
-  {
-      freopen(ctable.cmodels.param.file,"r",stdin);
-  }
-
-  int bad = ctable.read(stdin);  
-  if(ctable.cmodels.output.asparagus==STANDARD)
-	cerr << "done"<<endl;       
-  if (bad)
-    {
-      cerr << "Error in input" << endl;
-      return 1;
-    }
+  //then pipe INPUT.ground into ezsmtPlus
+  int bad = ctable.read();
+  if (bad) return 10;
   //removes some setting that might be not fitting
   //for some specific SAT solver
   ctable.cmodels.param.finish();
 
-   ctable.calculate();
-   /*	 
-
-   //	  for DEBUGGING externals replace above line with the following comented code
-  ctable.setSolver(MINISAT1);
-  int numLits=ctable.getNumberGroundedAtoms();
-  int* answerset_lits = new int[numLits];
-  ctable.Initialize(answerset_lits, numLits);
-  if (numLits!=-2){
-	cerr<<"preporcessing is sufficient here";
-	exit(23);
-  }
-  answerset_lits[0]=2;
-  answerset_lits[1]=3;
-  //  answerset_lits[2]=4;
-  //answerset_lits[3]=5;
-  //answerset_lits[4]=6;
-  numLits=2;
-  ctable.markExternallyConstrainedAtoms (answerset_lits, numLits);
-
-  numLits=ctable.getNumberGroundedAtoms();
-  bool* assignments= new bool [ctable.cmodels.program.number_of_atoms];
-  ctable.Solve(answerset_lits, numLits);
-
-  int inner_count=0;
-	//by default assignment and constraint_lits is false
-
-	for(int j=0; j<ctable.cmodels.program.cmodelsAtomsFromThisId; j++){
-	  assignments[j]= false;
-	}
-
-	for (int i=0; i<numLits; i++){
-	  for(int indA=inner_count; indA<ctable.cmodels.program.cmodelsAtomsFromThisId; indA++){
-		inner_count++;
-		if(answerset_lits[i]==ctable.cmodels.program.atoms[indA]->get_lparse_id()){
-		  
-		  assignments[indA]= true;		  
-
-		  break;
-		}
-	  }
-	}  
-	for (long i=0;i<ctable.cmodels.program.cmodelsAtomsFromThisId;i++){
-	  if(assignments[i]){
-		if(strcmp("#noname#",	ctable.cmodels.program.atoms[i]->atom_name()))
-			printf("%s ",	ctable.cmodels.program.atoms[i]->atom_name ());
-		  
-	   
-      }
-    }  
-   */
-  ctable.cmodels.output.timerAll.stop();
-  ctable.cmodels.output.print();
-
-  return 0;
+   ctable.cmodels.cmodels();
+   return 0;
 }
 

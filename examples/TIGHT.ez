@@ -1,0 +1,9 @@
+cspdomain(fd).
+cspvar(x).
+
+a :- not b.
+b :- not a.
+:- a.
+
+required(x>0) :- a.
+required(x<0) :- b.

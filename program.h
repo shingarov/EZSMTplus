@@ -84,7 +84,6 @@ public:
              //false if program is translated into nested basic program (if it has choice rules)
   bool tight; //true if the program is tight
   bool hcf; //true if the program is hcf
-  bool disj; //true if the program is disjunctive
 
   bool disjProgramLparse;//true if the program is disjunctive and lparse is used
 

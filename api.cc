@@ -580,9 +580,7 @@ Api::end_rule ()
       r = new ConstraintRule;
       break;
     case DISJUNCTIONRULE:{	  
-	  assert (size (head) >= 1);
-      r = new DisjunctionRule;
-      program->disj=true;
+	  exit(55);
       break;
 	}	  
     case WEIGHTRULE:	  

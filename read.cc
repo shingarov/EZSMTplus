@@ -531,7 +531,7 @@ Read::read (FILE *f)
 		break;
 	  case DISJUNCTIONRULE:
 		if (addDisjunctionRule (f)){	    
-		  program->disj=true;	
+		  exit(55);
 		  return 1;
 		}
 		break;

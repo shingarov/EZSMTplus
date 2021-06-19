@@ -20,11 +20,9 @@
 
 #include "program.h"
 #include "graphscc.h"
-//#include "wf.h"
 #include "api.h"
 #include "interpret.h"
 #include <vector>
-#include "MiniSat_v1.12b/Solver.h"
 
 using namespace std;
 class Atom;
@@ -54,25 +52,14 @@ public:
   void * zchaffMng;
 
   SimpSolver* minisatSolver; //minisat solver
-  ms1::Solver* mSolver1; //minisat solver
-
-
- 
-
-
 
   //we need these in case if sat solver is called from outside
   char command[512];
 
-
-
-
   void cmodels(); //runs translation invokation and so on
-  bool addDenial(int* constraint_lits, int num_lits);
   void markExternallyConstrainedAtoms (int* constainted_ayoms, int num_atoms, bool* trueExternal);
   void singleSolve(int* answerset_lits,  int& num_atoms);
   void init(int* answerset_lits, int& num_atoms, const char **&symbolTable, int &symbolTableEntries);
-  void setTestPartialSolutionInfo(testPartialSolutionInfo *tpsi); /* [marcy 022812] */
 
 protected:
   Atom*** rec_buf_atoms; //recuired for the translation of card. constraints in polynomial time
@@ -102,7 +89,7 @@ protected:
   void findMminus(bool* = 0);
 
 
-  bool translate_all_to_nested_rules();
+  void translate_all_to_nested_rules();
   void eraseFalseAtomsFromClauses();
 
   void add_fact_rule(Atom* a);
@@ -131,7 +118,7 @@ protected:
 
 
 
-  bool print_output_for_sat();// populates Clause databases of different solvers
+  void print_output_for_sat();// populates Clause databases of different solvers
                               // or calls to create dimacsxxx.out file standard for various solvers
 
   void print_DIMACS(); //creates dimacsxxx.out file standard for various solvers
@@ -259,7 +246,6 @@ protected:
   void reasonSolverTime();
 
   
-  void createModelVerificationManager();
   void createModelVerificationManagerMin(vector<Atom*> &atomsSCC);
 
 

@@ -19,9 +19,6 @@
 //    for incremental solving valid types are MINISAT and ZCHAFF and MINISAT1
 //    feedback solving is available only with MINISAT1
 //    By default it will be MINISAT
-// 2.1 calling void setExecutionArgs(char *args)
-//    passes on string of possible arguments that are then used in solving
-//    e.g. --forget=50 forget 50% learnt clauses at each denial added externally
 //
 // 3.  Calling  Initialize(int* answerset_lits, int& num_atoms) 
 //    that allows Cmodels to perform all the necessery preprocessing on the progarm
@@ -123,20 +120,13 @@ public:
   Api api;
   Cmodels cmodels;
   //incremental (EZCSP) related
-  int read (FILE *f);
+  int read ();
   void numberExpected(char* str);
-  void setSolver(SolverType st);
   void usage(void);
-  void setExecutionArgs(char args[]);
-  int setSingleExecutionArgument(char *arg, char *option);
-  char *cmodels_version(void)
-  {       return(CMODELS_VERSION);
-  }
 
   bool addDenial (int* constaint_lits, int num_lits);
   void markExternallyConstrainedAtoms (int* constainted_ayoms, int& num_atoms, bool* trueExternal);
   int getNumberGroundedAtoms();
-  void setTestPartialSolutionInfo(testPartialSolutionInfo *tpsi); /* [marcy 022812] */
 
   void Initialize(int* answerset_lits, int& num_atoms, const char **&symbolTable, int &symbolTableEntries);
   void Initialize(int* answerset_lits, int& num_atoms);

@@ -32,7 +32,6 @@
 #include <string>
 #include <map>
 #include"SimpSolver.h"
-//#include "SAT.h"
 
 using namespace std;
 class Program;

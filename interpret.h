@@ -83,13 +83,6 @@ Output::start_output(){
   
 }
 inline  void 
-Output::disj_output(){
-  if(asparagus==STANDARD)
-	if(program->disj)
-	  cerr<<"Program is Disjunctive."<<endl;
-  
-}
-inline  void 
 Output::tight_output(){
   if(asparagus==STANDARD)
 	if(!program->tight)

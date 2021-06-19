@@ -6,6 +6,7 @@
 #        self.value = value
 import sys
 import re
+from time import sleep
 
 CSP_VAR = "CSP_VAR"
 EZSMT_VAR = "EZSMT_VAR"
@@ -202,9 +203,9 @@ scanner = re.Scanner([
     #(r"true|false", boolean),
     (r"cspdomain", domain),
     (r"cspvardomain", vardomain),
-	
-	# To be implemented:
-	#(r"_distinct", distinct),
+        
+        # To be implemented:
+        #(r"_distinct", distinct),
 
     # Integer Comparisons
     (r"ezcsp__eq", int_compare_eq),
@@ -279,7 +280,7 @@ smt_real_min_function = "(define-fun min ((x Real) (y Real)) Real\n\
 
 def smt_header(logic="LIA"):
     if logic != "AUFLIRA" and logic != "AUFNIRA":
-    	print("\
+        print("\
 (set-option :interactive-mode true) \n\
 (set-option :produce-models true) \n\
 (set-option :produce-assignments true) \n\
@@ -287,7 +288,7 @@ def smt_header(logic="LIA"):
 ;Quantifier Free Linear Arithmetic \n\
 (set-logic QF_{0})".format(logic))
     elif logic == "AUFLIRA":
-    	print("\
+        print("\
 (set-option :interactive-mode true) \n\
 (set-option :produce-models true) \n\
 (set-option :produce-assignments true) \n\
@@ -295,7 +296,7 @@ def smt_header(logic="LIA"):
 ; \n\
 (set-logic AUFLIRA)")
     else:
-    	print("\
+        print("\
 (set-option :interactive-mode true) \n\
 (set-option :produce-models true) \n\
 (set-option :produce-assignments true) \n\
@@ -303,7 +304,7 @@ def smt_header(logic="LIA"):
 ; \n\
 (set-logic AUFNIRA)")
 
-	
+        
     
     print("; --- END HEADER ---\n")
     
@@ -339,6 +340,7 @@ def assert_cnf(lines):
             print("(assert %s)" % cnf[0])
         else:
             print("(assert (or %s))" % " ".join(cnf))
+    print("; -- end assert_cnf() --")
 
 
 def assert_statements(statements_to_assert):
@@ -462,9 +464,9 @@ def declare_bounded_int(id, lower_bound, uppper_bound):
                        "(assert (<= {lower_bound} |{id}|))\n"
                        "(assert (>= {upper_bound} |{id}|))\n")
     if lower_bound[0]=='-':
-    	values = {'id': id, 'lower_bound': "(- "+lower_bound[1:]+")", 'upper_bound': uppper_bound}
+        values = {'id': id, 'lower_bound': "(- "+lower_bound[1:]+")", 'upper_bound': uppper_bound}
     else:
-	values = {'id': id, 'lower_bound': lower_bound, 'upper_bound': uppper_bound}
+        values = {'id': id, 'lower_bound': lower_bound, 'upper_bound': uppper_bound}
     print(int_declaration.format(**values))    
     
     
@@ -484,9 +486,9 @@ def declare_bounded_real(id, lower_bound, uppper_bound):
                        "(assert (<= {lower_bound} |{id}|))\n"
                        "(assert (>= {upper_bound} |{id}|))\n")
     if lower_bound[0]=='-':
-    	values = {'id': id, 'lower_bound': "(- "+lower_bound[1:]+")", 'upper_bound': uppper_bound}
+        values = {'id': id, 'lower_bound': "(- "+lower_bound[1:]+")", 'upper_bound': uppper_bound}
     else:
-	values = {'id': id, 'lower_bound': lower_bound, 'upper_bound': uppper_bound}
+        values = {'id': id, 'lower_bound': lower_bound, 'upper_bound': uppper_bound}
     print(real_declaration.format(**values))
 
 
@@ -494,13 +496,13 @@ def global_constraint_to_smt(smt_expression, tokens):
     if tokens[1][1] == SUM_OPERATOR:
         sum_tokens = tokens[3:-2]
         prefix = "list("
-	# Two cases
+        # Two cases
         # Case 1: Expect list(csp_id,arity),ezcsp_INT_COMPARE,csp_id 
         # Case 2: Expect list(csp_id1(csp_id2(s)),arity),ezcsp_INT_COMPARE,csp_id3   where csp_id1() is declared as csp variable of the spicified arity whose parameter starts with csp_id2(s)
         # Case 3: Expect list(csp_id1(csp_id2(s)), num),ezcsp_INT_COMPARE,csp_id3   where csp_id1(csp_id2(s)) is a regular atom. The summation sums up the num-th parameter of csp_id1(csp_id2(s)).
 
         # We start with case 1
-	if sum_tokens[0][1].startswith(prefix) and sum_tokens[0][0] == IDENTIFIER and sum_tokens[1][0] == INT_COMPARE and (sum_tokens[2][0] == IDENTIFIER or sum_tokens[2][0] == DIGIT):
+        if sum_tokens[0][1].startswith(prefix) and sum_tokens[0][0] == IDENTIFIER and sum_tokens[1][0] == INT_COMPARE and (sum_tokens[2][0] == IDENTIFIER or sum_tokens[2][0] == DIGIT):
            
             predicate_id, predicate_arity = sum_tokens[0][1][len(prefix):-1].split(',')
             predicate_arity = int(predicate_arity)
@@ -525,34 +527,34 @@ def global_constraint_to_smt(smt_expression, tokens):
             else:
                 smt_expression.append(" false")
 
-	#case 2	
-	# create another function dict for ground atoms.
-	elif sum_tokens[0][1]=='list' and sum_tokens[0][0] == IDENTIFIER and sum_tokens[1][1]=='(' and sum_tokens[2][0] == IDENTIFIER and sum_tokens[3][0] == DIGIT and len(sum_tokens[2][1].split(',')) <= int(sum_tokens[3][1]) and sum_tokens[4][1] == ')' and sum_tokens[5][0] == INT_COMPARE and (sum_tokens[6][0] == IDENTIFIER or sum_tokens[6][0] == DIGIT):
+        #case 2 
+        # create another function dict for ground atoms.
+        elif sum_tokens[0][1]=='list' and sum_tokens[0][0] == IDENTIFIER and sum_tokens[1][1]=='(' and sum_tokens[2][0] == IDENTIFIER and sum_tokens[3][0] == DIGIT and len(sum_tokens[2][1].split(',')) <= int(sum_tokens[3][1]) and sum_tokens[4][1] == ')' and sum_tokens[5][0] == INT_COMPARE and (sum_tokens[6][0] == IDENTIFIER or sum_tokens[6][0] == DIGIT):
 
             predicate_id= sum_tokens[2][1].split('(')[0]
             predicate_startswith =  sum_tokens[2][1].split('(')[1][:-1]
-	    predicate_arity = sum_tokens[3][1]
+            predicate_arity = sum_tokens[3][1]
             predicate_arity = int(predicate_arity)
-	    para_num = int(sum_tokens[3][1])
+            para_num = int(sum_tokens[3][1])
 
             # Ensure predicates exist in the program, otherwise the statement cannot satisfy
             if predicate_id in func_dict: 
-	    #case 2:
- 		if predicate_arity in func_dict[predicate_id] and len(func_dict[predicate_id][predicate_arity]) > 0:        
+            #case 2:
+                if predicate_arity in func_dict[predicate_id] and len(func_dict[predicate_id][predicate_arity]) > 0:        
                     #Ensure that predicates starting with given csp_id exist
                     predicates_exist = False
-		    for predicate in func_dict[predicate_id][predicate_arity]:
-		        if len(predicate.split('(')[1]) > len(predicate_startswith):
-		            if predicate.split('(')[1].startswith(predicate_startswith):
-			        predicates_exist = True
-			        break
-		    if predicates_exist:
-		        smt_expression.extend(["(",sum_tokens[5][1]," (+ "])
+                    for predicate in func_dict[predicate_id][predicate_arity]:
+                        if len(predicate.split('(')[1]) > len(predicate_startswith):
+                            if predicate.split('(')[1].startswith(predicate_startswith):
+                                predicates_exist = True
+                                break
+                    if predicates_exist:
+                        smt_expression.extend(["(",sum_tokens[5][1]," (+ "])
             
                         for predicate in func_dict[predicate_id][predicate_arity]:
-		            if len(predicate.split('(')[1]) > len(predicate_startswith):
-		                if predicate.split('(')[1].startswith(predicate_startswith):
-				    smt_expression.extend([" |",predicate,"| "])
+                            if len(predicate.split('(')[1]) > len(predicate_startswith):
+                                if predicate.split('(')[1].startswith(predicate_startswith):
+                                    smt_expression.extend([" |",predicate,"| "])
                         smt_expression.append(")")
             
                         if sum_tokens[6][0] == IDENTIFIER:
@@ -564,53 +566,53 @@ def global_constraint_to_smt(smt_expression, tokens):
                                 smt_expression.extend([" ", sum_tokens[6][1]])
             
                         smt_expression.append(")")
-	  	    else:
-		        smt_expression.append(" false")
-	  	else:
-		    smt_expression.append(" false")
+                    else:
+                        smt_expression.append(" false")
+                else:
+                    smt_expression.append(" false")
             else:
-	        #case 3
+                #case 3
                 #Ensure that predicates starting with given csp_id exist
                 predicates_count = 0
-	        for predicate_arity in atom_dict[predicate_id].iterkeys():
-	            if predicate_arity >= para_num:
-		        for predicate in atom_dict[predicate_id][predicate_arity]:
-		            if len(predicate.split('(')[1]) > len(predicate_startswith):
-		                if predicate.split('(')[1].startswith(predicate_startswith):
-			            predicates_count += 1
-			            if predicates_count >1:
-					break
-	        if predicates_count > 0:
-		    smt_expression.extend(["(",sum_tokens[5][1]])
-		    if predicates_count >1:
-		        smt_expression.extend([" (+ "])
-	            for predicate_arity in atom_dict[predicate_id].iterkeys():
+                for predicate_arity in atom_dict[predicate_id].iterkeys():
+                    if predicate_arity >= para_num:
                         for predicate in atom_dict[predicate_id][predicate_arity]:
-			    if len(predicate.split('(')[1]) > len(predicate_startswith) and  predicate.split('(')[1].startswith(predicate_startswith):
-				    #parse out arguments of the atom 
-				    temptokens = predicate[len(predicate_id)+1:-1].split(',')
-				    temptokens2 = []
-				    tempstr = ''
-				    pcounter =0
-				    for token in temptokens:
-				        pcounter += token.count('(')
-				        pcounter -= token.count(')')
-					if pcounter == 0:
-					    if len(tempstr) > 0:
-						tempstr += ','
-					    tempstr += token
-					    temptokens2.append(tempstr)
-					    tempstr = ''
-					else:
-					    if len(tempstr) > 0:
-						tempstr += ','
-					    tempstr += token 
-				    #print('\n\n\n')
-				    #print(temptokens)
-				    #print(temptokens2)
-				    smt_expression.extend([" |", temptokens2[para_num-1] ,"| "])
+                            if len(predicate.split('(')[1]) > len(predicate_startswith):
+                                if predicate.split('(')[1].startswith(predicate_startswith):
+                                    predicates_count += 1
+                                    if predicates_count >1:
+                                        break
+                if predicates_count > 0:
+                    smt_expression.extend(["(",sum_tokens[5][1]])
                     if predicates_count >1:
-			smt_expression.append(")")
+                        smt_expression.extend([" (+ "])
+                    for predicate_arity in atom_dict[predicate_id].iterkeys():
+                        for predicate in atom_dict[predicate_id][predicate_arity]:
+                            if len(predicate.split('(')[1]) > len(predicate_startswith) and  predicate.split('(')[1].startswith(predicate_startswith):
+                                    #parse out arguments of the atom 
+                                    temptokens = predicate[len(predicate_id)+1:-1].split(',')
+                                    temptokens2 = []
+                                    tempstr = ''
+                                    pcounter =0
+                                    for token in temptokens:
+                                        pcounter += token.count('(')
+                                        pcounter -= token.count(')')
+                                        if pcounter == 0:
+                                            if len(tempstr) > 0:
+                                                tempstr += ','
+                                            tempstr += token
+                                            temptokens2.append(tempstr)
+                                            tempstr = ''
+                                        else:
+                                            if len(tempstr) > 0:
+                                                tempstr += ','
+                                            tempstr += token 
+                                    #print('\n\n\n')
+                                    #print(temptokens)
+                                    #print(temptokens2)
+                                    smt_expression.extend([" |", temptokens2[para_num-1] ,"| "])
+                    if predicates_count >1:
+                        smt_expression.append(")")
             
                     if sum_tokens[6][0] == IDENTIFIER:
                         smt_expression.extend([" |",sum_tokens[6][1],"| "])
@@ -621,9 +623,9 @@ def global_constraint_to_smt(smt_expression, tokens):
                             smt_expression.extend([" ", sum_tokens[6][1]])
             
                     smt_expression.append(")")
-	        else:
-		    smt_expression.append(" false")
-	else:
+                else:
+                    smt_expression.append(" false")
+        else:
             raise Exception("Does not conform to ezcsp__sum specifications")
 
 
@@ -652,7 +654,7 @@ def regular_constraint_to_smt(smt_expression, tokens):
     for elem in tokens[1:-1]:
         if elem[0] == INT_COMPARE or elem[0] == INT_OPERATOR or elem[0] == BOOL_COMPARE or elem[0] == BOOL_OPERATOR:
             smt_expression.extend( ["(",elem[1]])
-	    paren_counter += 1
+            paren_counter += 1
         elif elem[0] == IDENTIFIER:
             smt_expression.extend([" |",elem[1],"| "])
         elif elem[0] == DIGIT:
@@ -662,14 +664,14 @@ def regular_constraint_to_smt(smt_expression, tokens):
                 smt_expression.extend([" ", elem[1]])
         elif elem[0] == END_PAREN:
             smt_expression.append(")")
-	    paren_counter -= 1
+            paren_counter -= 1
 
     while True:
-	if paren_counter > 0:
-	    paren_counter -= 1
-	    smt_expression.append(")")
-	else:
-	    break 
+        if paren_counter > 0:
+            paren_counter -= 1
+            smt_expression.append(")")
+        else:
+            break 
     
 
 
@@ -691,10 +693,10 @@ def csp_expression_to_smt(declared_bool, tokens):
 
 
 def check_sat():
-	print("\n; Check satisfiability")
-	print("(check-sat)")
-	print("; Comment if unsat occurs.")
-	print("(get-model)")
+        print("\n; Check satisfiability")
+        print("(check-sat)")
+        print("; Comment if unsat occurs.")
+        print("(get-model)")
 
 
 SUPPORTED_LOGICS = {"linear-integer" : "LIA", "difference-logic" : "IDL", "linear-real" : "LRA", "r" : "LRA", "fd" :"LIA" , "nonlinear-integer" : "NIA","nonlinear-real" : "NRA", "mixed":"AUFLIRA"}
@@ -708,6 +710,8 @@ if __name__ == '__main__':
     #if len(sys.argv) >= 3:
     #    sys.stdout = open(sys.argv[2], 'w')
 
+    #sleep(999999)
+    #import pudb; pu.db
     fileName = sys.argv[1]
 
     with open(fileName) as f:
@@ -730,64 +734,65 @@ if __name__ == '__main__':
     #If the logic is non-linear, set logic according to atom cspdomain() 
     if len(sys.argv) > 2 and sys.argv[2] != "nonlinear":
         if sys.argv[2] in SUPPORTED_LOGICS.keys():
-	    if SUPPORTED_LOGICS[sys.argv[2]] == "LIA" or SUPPORTED_LOGICS[sys.argv[2]] == "IDL" or SUPPORTED_LOGICS[sys.argv[2]] == "NIA":
-		logic = INTEGER_TYPE
-	    elif SUPPORTED_LOGICS[sys.argv[2]] == "AUFLIRA":
-	    	logic = MIXED_TYPE
-	    else:
-            	logic = REAL_TYPE
-	else:	
-	    raise Exception("Invalid commandline arguments: Logic not supported")
+            if SUPPORTED_LOGICS[sys.argv[2]] == "LIA" or SUPPORTED_LOGICS[sys.argv[2]] == "IDL" or SUPPORTED_LOGICS[sys.argv[2]] == "NIA":
+                logic = INTEGER_TYPE
+            elif SUPPORTED_LOGICS[sys.argv[2]] == "AUFLIRA":
+                logic = MIXED_TYPE
+            else:
+                logic = REAL_TYPE
+        else:   
+            raise Exception("Invalid commandline arguments: Logic not supported")
     else:  
         for dimacs_bool in dimacs_bools:
             tokens, remainder = scanner.scan(dimacs_bool)
             if remainder == '' and tokens[0][0] == DOMAIN:
                 assert tokens[2][0] == IDENTIFIER
-		cspdomain = tokens[2][1] 
+                cspdomain = tokens[2][1] 
                 if SUPPORTED_LOGICS[cspdomain] == "LIA" or SUPPORTED_LOGICS[cspdomain] == "IDL":
                     logic = INTEGER_TYPE
-            	elif SUPPORTED_LOGICS[cspdomain] == "AUFLIRA":
+                elif SUPPORTED_LOGICS[cspdomain] == "AUFLIRA":
                     logic = MIXED_TYPE
                 else:
                     logic = REAL_TYPE
                 break
-	# If we are in the mixed domains, then get the list of variables to
+        # If we are in the mixed domains, then get the list of variables to
         # be declared as integers.
-	if cspdomain == 'mixed':
+        if cspdomain == 'mixed':
             for dimacs_bool in dimacs_bools:
                 tokens, remainder = scanner.scan(dimacs_bool)
                 if remainder == '' and tokens[0][0] == VARDOMAIN:
                     assert tokens[2][0] == IDENTIFIER
-		    if tokens[3][1] =='real':
+                    if tokens[3][1] =='real':
                         continue
-		    elif tokens[3][1] == 'int':
-			intList.append(tokens[2][1])
-		    else:
-			raise Exception("Invalid cspvardomain: Please choose from either \"int\" or \"real\" ")
+                    elif tokens[3][1] == 'int':
+                        intList.append(tokens[2][1])
+                    else:
+                        raise Exception("Invalid cspvardomain: Please choose from either \"int\" or \"real\" ")
         
 
     # Writes the SMT header.
     if len(sys.argv) == 2:
-	if cspdomain == None:
-	    cspdomain = "fd"
+        if cspdomain == None:
+            cspdomain = "fd"
         if cspdomain in SUPPORTED_LOGICS.keys():
-	    smt_header(SUPPORTED_LOGICS[cspdomain])
-		
+            smt_header(SUPPORTED_LOGICS[cspdomain])
+                
         else:
-	    raise Exception("Invalid cspdomain: Logic not supported")
+            raise Exception("Invalid cspdomain: Logic not supported")
     elif sys.argv[2] != "nonlinear" and sys.argv[2] in SUPPORTED_LOGICS.keys():
         smt_header(SUPPORTED_LOGICS[sys.argv[2]])
     elif sys.argv[2] == "nonlinear":
-	if logic == INTEGER_TYPE:
-		smt_header("NIA")
-	elif logic == MIXED_TYPE:
-		smt_header("AUFNIRA")
-	elif logic == REAL_TYPE:
-		smt_header("NRA")
+        if logic == INTEGER_TYPE:
+                smt_header("NIA")
+        elif logic == MIXED_TYPE:
+                smt_header("AUFNIRA")
+        elif logic == REAL_TYPE:
+                smt_header("NRA")
     else:
         raise Exception("Invalid commandline arguments: Logic not supported")
 
 
+    #import pudb; pu.db
     # Declare each variable from dimacs
     declare_bools(dimacs_bools)
     
@@ -799,94 +804,96 @@ if __name__ == '__main__':
     int_ids_to_declare = set()
     bool_ids_to_declare = set()
     statements_to_assert = set()
-		
+                
     for dimacs_bool in dimacs_bools:
-    	maintain_atoms(dimacs_bool)
+        maintain_atoms(dimacs_bool)
     
-    #print('\n\n\n')
+    #print('\n\n; === atom_dict:\n')
     #print(atom_dict)
     #print('\n\n\n')
+
+    print('\n\n\n; === Declare all cspvar(...): ===\n')
     for dimacs_bool in dimacs_bools:
         
-	tokens, remainder = scanner.scan(dimacs_bool)
+        tokens, remainder = scanner.scan(dimacs_bool)
         #print(tokens)
         #print(remainder)
 
         if not remainder == '':
             raise Exception("Scanner found a syntax error at: {0}" % dimacs_bool)
 
-	if tokens[0][0] == CSP_VAR:
+        if tokens[0][0] == CSP_VAR:
             tempstr = ""
-	    pcounter = 0
-	    icounter = 0
-	    lbound =0 
-	    ubound =0
-	    pnum =0
-	    for (a,b) in tokens:
-	        if a == 'PAREN':
-	            pcounter += 1
+            pcounter = 0
+            icounter = 0
+            lbound =0 
+            ubound =0
+            pnum =0
+            for (a,b) in tokens:
+                if a == 'PAREN':
+                    pcounter += 1
                     pnum =0
-		    if pcounter > 1:
-		        tempstr = tempstr + b
-	        elif a == 'END_PAREN':
-		    pcounter -= 1
+                    if pcounter > 1:
+                        tempstr = tempstr + b
+                elif a == 'END_PAREN':
+                    pcounter -= 1
                     pnum  = 1
-		    if pcounter >= 1:
-		        tempstr = tempstr + b
-	        elif a == 'DIGIT' and pcounter == 1 and icounter ==0:
-		    icounter += 1
-		    lbound = b
-	        elif a == 'DIGIT' and pcounter == 1 and icounter != 0:
-		    icounter +=1
-		    ubound = b
-	        elif a =='IDENTIFIER'  and pcounter >= 1:
-		    if pnum ==0:
-		        tempstr = tempstr + b
-		    else:
-		        tempstr = tempstr + ',' + b
+                    if pcounter >= 1:
+                        tempstr = tempstr + b
+                elif a == 'DIGIT' and pcounter == 1 and icounter ==0:
+                    icounter += 1
+                    lbound = b
+                elif a == 'DIGIT' and pcounter == 1 and icounter != 0:
+                    icounter +=1
+                    ubound = b
+                elif a =='IDENTIFIER'  and pcounter >= 1:
+                    if pnum ==0:
+                        tempstr = tempstr + b
+                    else:
+                        tempstr = tempstr + ',' + b
                     pnum  = 1
-	        elif a == 'DIGIT' and pcounter > 1:
-		    if pnum ==0:
-		        tempstr = tempstr + b
-		    else:
-		        tempstr = tempstr + ',' + b
+                elif a == 'DIGIT' and pcounter > 1:
+                    if pnum ==0:
+                        tempstr = tempstr + b
+                    else:
+                        tempstr = tempstr + ',' + b
                     pnum  = 1
-	    
-	    if icounter != 0 and icounter != 2:
-		raise Exception("Invalid declaration of cspvar")
+            
+            if icounter != 0 and icounter != 2:
+                raise Exception("Invalid declaration of cspvar")
 
 
-    	    if logic == REAL_TYPE:
-		if icounter ==0:
+            if logic == REAL_TYPE:
+                if icounter ==0:
                     declare_real(tempstr)
-		else:
+                else:
                     declare_bounded_real(tempstr, lbound, ubound)
-	    elif logic == MIXED_TYPE: 
-		# Level ranking variables must be declared over integers.
-	        if tokens[2][1][:2] == 'lr' and tokens[2][1][2:].isdigit():
-               	    declare_bounded_int(tokens[2][1], tokens[3][1], tokens[4][1])
-		# if the variable is specified as over integers 	
-		elif tokens[2][1] in intList:
-		    if icounter ==0:
-			declare_int(tempstr)
-		    else:
-			declare_bounded_int(tempstr, lbound, ubound)
-		else:
-		    if icounter ==0:
-                	declare_real(tempstr)
-		    else:
-                	declare_bounded_real(tempstr, lbound, ubound)
+            elif logic == MIXED_TYPE: 
+                # Level ranking variables must be declared over integers.
+                if tokens[2][1][:2] == 'lr' and tokens[2][1][2:].isdigit():
+                    declare_bounded_int(tokens[2][1], tokens[3][1], tokens[4][1])
+                # if the variable is specified as over integers         
+                elif tokens[2][1] in intList:
+                    if icounter ==0:
+                        declare_int(tempstr)
+                    else:
+                        declare_bounded_int(tempstr, lbound, ubound)
+                else:
+                    if icounter ==0:
+                        declare_real(tempstr)
+                    else:
+                        declare_bounded_real(tempstr, lbound, ubound)
             else:
-		if icounter ==0:
-		    declare_int(tempstr)
-		else:
-		    declare_bounded_int(tempstr, lbound, ubound)
+                if icounter ==0:
+                    declare_int(tempstr)
+                else:
+                    declare_bounded_int(tempstr, lbound, ubound)
         elif tokens[0][0] == EZSMT_VAR:
             declare_ezsmt_var(tokens)
         elif tokens[0][0] == DOMAIN:
             assert tokens[2][0] == IDENTIFIER
-    	    if logic != MIXED_TYPE and logic != REAL_TYPE:
-		cspdomain = tokens[2][1] 
+            if logic != MIXED_TYPE and logic != REAL_TYPE:
+                cspdomain = tokens[2][1] 
                 logic = SUPPORTED_LOGICS[tokens[2][1]]
 
             #print("domain", tokens[2][1])
@@ -895,93 +902,97 @@ if __name__ == '__main__':
             # Do nothing
             continue
         
+    print('\n\n\n; === Deal with all required(...): ===\n')
     for dimacs_bool in dimacs_bools:
         tokens, remainder = scanner.scan(dimacs_bool)
         #print(dimacs_bool)
-	#print(tokens)
+        #print(tokens)
         #print(remainder)
 
         if not remainder == '':
             raise Exception("Scanner found a syntax error at: {0}" % dimacs_bool)
         elif tokens[0][0] == CSP_EXPRESSION and tokens[1][0] == 'INT_COMPARE':
-	    #Handle nested parens in variable names
-	    newtokens = []
-	    plist = [0]
-	    tempstr = ""
-	    temptpl = (0,0)
-	    pnum =0
+            #import pudb; pu.db
+            #Handle nested parens in variable names
+            newtokens = []
+            plist = [0]
+            tempstr = ""
+            temptpl = (0,0)
+            pnum =0
 
-	    for (a,b) in tokens:
-            	if a == 'PAREN':
-		    if newtokens[-1][0] == 'IDENTIFIER':
-			plist.append(1)
-		    else:
-			plist.append(0)
-		    newtokens.append((a,b))
-            	elif a == 'END_PAREN':
-		    if plist.pop() == 0:
-		        newtokens.append((a,b))
-		    else:
-			pnum =0
-			tempstr = ")"
-			while True:
-			    temptpl = newtokens.pop()
-			    if temptpl[0] ==   'PAREN':
-				tempstr = newtokens.pop()[1] + "(" + tempstr
-				newtokens.append(('IDENTIFIER', tempstr))
-				break
-			    else:
-				if pnum ==0:
-				    tempstr = temptpl[1] + tempstr
-				    pnum = 1
-				else:
-				    tempstr = temptpl[1] + "," + tempstr
-		else: 
-		    newtokens.append((a,b))
-	    if len(plist) != 0:
-		raise Exception("Unmatched Parenthesis")
+            for (a,b) in tokens:
+                if a == 'PAREN':
+                    if newtokens[-1][0] == 'IDENTIFIER':
+                        plist.append(1)
+                    else:
+                        plist.append(0)
+                    newtokens.append((a,b))
+                elif a == 'END_PAREN':
+                    if plist.pop() == 0:
+                        newtokens.append((a,b))
+                    else:
+                        pnum =0
+                        tempstr = ")"
+                        while True:
+                            temptpl = newtokens.pop()
+                            if temptpl[0] ==   'PAREN':
+                                tempstr = newtokens.pop()[1] + "(" + tempstr
+                                newtokens.append(('IDENTIFIER', tempstr))
+                                break
+                            else:
+                                if pnum ==0:
+                                    tempstr = temptpl[1] + tempstr
+                                    pnum = 1
+                                else:
+                                    tempstr = temptpl[1] + "," + tempstr
+                else: 
+                    newtokens.append((a,b))
+            if len(plist) != 0:
+                raise Exception("Unmatched Parenthesis")
 
-	    csp_expression_to_smt(dimacs_bool, newtokens)
-	    
+            csp_expression_to_smt(dimacs_bool, newtokens)
+            
         elif tokens[0][0] == CSP_EXPRESSION:
-	    #Handle nested parens in variable names
-	    newtokens = []
-	    plist = [0]
-	    tempstr = ""
-	    temptpl = (0,0)
-	    pnum =0
+            #import pudb; pu.db
+            #Handle nested parens in variable names
+            newtokens = []
+            plist = [0]
+            tempstr = ""
+            temptpl = (0,0)
+            pnum =0
 
-	    for (a,b) in tokens:
-            	if a == 'PAREN':
-		    if newtokens[-1][0] == 'IDENTIFIER' and newtokens[-1][1] != 'list':
-			plist.append(1)
-		    else:
-			plist.append(0)
-		    newtokens.append((a,b))
-            	elif a == 'END_PAREN':
-		    if plist.pop() == 0:
-		        newtokens.append((a,b))
-		    else:
-			pnum =0
-			tempstr = ")"
-			while True:
-			    temptpl = newtokens.pop()
-			    if temptpl[0] ==   'PAREN':
-				tempstr = newtokens.pop()[1] + "(" + tempstr
-				newtokens.append(('IDENTIFIER', tempstr))
-				break
-			    else:
-				if pnum ==0:
-				    tempstr = temptpl[1] + tempstr
-				    pnum = 1
-				else:
-				    tempstr = temptpl[1] + "," + tempstr
-		else: 
-		    newtokens.append((a,b))
-	    if len(plist) != 0:
-		raise Exception("Unmatched Parenthesis")
+            for (a,b) in tokens:
+                if a == 'PAREN':
+                    if newtokens[-1][0] == 'IDENTIFIER' and newtokens[-1][1] != 'list':
+                        plist.append(1)
+                    else:
+                        plist.append(0)
+                    newtokens.append((a,b))
+                elif a == 'END_PAREN':
+                    if plist.pop() == 0:
+                        newtokens.append((a,b))
+                    else:
+                        pnum =0
+                        tempstr = ")"
+                        while True:
+                            temptpl = newtokens.pop()
+                            if temptpl[0] ==   'PAREN':
+                                tempstr = newtokens.pop()[1] + "(" + tempstr
+                                newtokens.append(('IDENTIFIER', tempstr))
+                                break
+                            else:
+                                if pnum ==0:
+                                    tempstr = temptpl[1] + tempstr
+                                    pnum = 1
+                                else:
+                                    tempstr = temptpl[1] + "," + tempstr
+                else: 
+                    newtokens.append((a,b))
+            if len(plist) != 0:
+                raise Exception("Unmatched Parenthesis")
             csp_expression_to_smt(dimacs_bool, newtokens)
         elif tokens[0][0] == INT_COMPARE or tokens[0][0] == BOOL_COMPARE:
+            #import pudb; pu.db
             # Get all items that must be declared
             # Booleans can be declared as is
             # Integers eventually need to be defined to be within the specified domain

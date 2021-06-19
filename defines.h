@@ -65,29 +65,6 @@ typedef enum {
   EQUIV,
   IMPL
 } Connector;
-typedef enum {
-  //  RELSAT1, is no longer supporte
-  RELSAT,
-  SIMO,
-  ZCHAFF,
-  ASSAT_ZCHAFF,
-  BCIRCUIT,
-  MINISAT,
-  MINISAT1,
-  DIMACS_PRODUCE,
-  CASP_DIMACS_PRODUCE,
-  LEVEL_RANKING,
-  SCC_LEVEL_RANKING,
-  SCC_LEVEL_RANKING_STRONG,
-  LEVEL_RANKING_STRONG
-  // MCHAFF  is no longer supported
-} SolverType;
-
-typedef enum {
-	CVC4,
-	Z3,
-	YICES
-} SMTSolver;
 
 typedef enum {
 	FD,
@@ -104,7 +81,6 @@ typedef enum {
 typedef enum {
   TIGHT=1, 
   NONDISJ=2,
-  MIN=3,
   MINSCC=4,
   HCF=5
  } VerifyMethod;
