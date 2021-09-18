@@ -1,76 +1,27 @@
-AR = /usr/bin/ar
-CC = gcc
-CPP = @CPP@
-CXX = g++
-CXXCPP = @CXXCPP@
-RANLIB = ranlib
+CXX = g++-7
 
-CPPFLAGS = 
-LDFLAGS = 
-LIBS = 
-CXXFLAGS = -g -O0 -fpermissive
-CFLAGS = -g -O0
+CXXFLAGS = -ggdb -O0 -std=c++11 -fpermissive -fPIC -Ilibgringo4
 
-MFLAGS = 
+HEADERS = stack.h  atomrule.h graphscc.h\
+ program.h api.h \
+ tree.h cmodels.h interpret.h param.h
 
-ifeq (solaris, $(OSTYPE))
-  MFLAGS = -D_NEED_REDEFINE_RAND_MAX_
-endif
-
-#RANLIB = ranlib
-#AR = ar
-
-.SUFFIXES: .o .cc 
-
-HEADERS = Solver.h SimpSolver.h SolverTypes.h Vec.h Queue.h Alg.h BasicHeap.h BoxedVec.h Map.h Heap.h Sort.h \
-stack.h  atomrule.h read.h graphscc.h\
- timer.h  program.h api.h ctable.h \
-tree.h  simo.h cmodels.h interpret.h param.h
-
-SOLVER_SRCS = main.cc 
-SOLVER_OBJS = $(SOLVER_SRCS:.cc=.o)
-
-LIB_SRCS =  stack.cc  atomrule.cc read.cc \
-timer.cc  program.cc api.cc ctable.cc \
-tree.cc  simo.cc graphscc.cc cmodels.cc interpret.cc
+LIB_SRCS =  stack.cc  atomrule.cc entry.cc \
+program.cc api.cc \
+tree.cc graphscc.cc cmodels.cc interpret.cc
 
 LIB_OBJS = $(LIB_SRCS:.cc=.o)
 
-
-cmodels:   $(SOLVER_OBJS) libsat.a
-	  $(CXX) $(LINKFLAGS) $(CFLAGS) $(MFLAGS) $(SOLVER_OBJS) libsat.a -o ezsmtPlus
-
-zverify_bf: zverify_bf.cc	
-	  $(CXX) $(LINKFLAGS) $(CFLAGS) $(MFLAGS) zverify_bf.cc -o zverify_bf
-
-zverify_df: zverify_df.cc
-	  $(CXX) $(LINKFLAGS) $(CFLAGS) $(MFLAGS) zverify_df.cc -o zverify_df
-
-zcore: zcore_extract.cc
-	  $(CXX) $(LINKFLAGS) $(CFLAGS) $(MFLAGS) zcore_extract.cc -o zcore
-
-cnf_stats: cnf_stats.cc
-	  $(CXX) $(LINKFLAGS) $(CFLAGS) $(MFLAGS) cnf_stats.cc -o cnf_stats
+libezsmt.so:   $(LIB_OBJS)
+	$(CXX) $(CFLAGS) -shared -fPIC -o $@ $(LIB_OBJS) -Llibgringo4/src -lgringo
 
 $(LIB_OBJS): $(HEADERS) Makefile
 
-libsat.a:   $(LIB_OBJS)
-	@rm -f libsat.a
-	$(AR) cr libsat.a $(LIB_OBJS)
-	$(RANLIB) libsat.a
+clean:
+	rm -f *.o *.so example_main
 
-#.cc.o:
-#	$(CC) $(CFLAGS) $(MFLAGS) -c  $< 
+example_main: example_main.c libezsmt.so
+	gcc -o example_main -O0 -ggdb example_main.c -L. -lezsmt
 
-clean:	
-	rm -f *.o libsat.a zcore cnf_stats Model* dimacs-completion*.out SMT*
-
-all: cmodels 
-	 	  
-
-d: ezsmtPlus
-	vim -c "Termdebug ./ezsmtPlus" -c "Break main" -c 'Run < INPUT.ground'
-
-dt: ezsmtPlus
-	vim -c "Termdebug ./ezsmtPlus" -c "Break main" -c 'Run < TIGHT.ground'
-
+d: example_main
+	vim -c "Termdebug ./example_main" -c "Break main" -c 'Run'

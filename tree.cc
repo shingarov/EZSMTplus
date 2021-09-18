@@ -26,21 +26,6 @@
 #include "atomrule.h"
 #include "tree.h"
 #include <string.h>
-Tree::Node::Node (Atom *k, Node *l, Node *r)
-{
-  key = k;
-  left = l;
-  right = r;
-}
-
-Tree::Node::~Node ()
-{
-}
-
-Tree::Tree ()
-{
-  root = 0;
-}
 
 Tree::~Tree ()
 {
@@ -50,8 +35,7 @@ Tree::~Tree ()
 void
 Tree::flush (Node *n)
 {
-  if (n == 0)
-    return;
+  if (n == NULL) return;
   flush (n->left);
   flush (n->right);
   delete n;
@@ -60,7 +44,7 @@ Tree::flush (Node *n)
 Tree::Node *
 Tree::splay (const char *key, Node *root)
 {
-  Node n;
+  Node n(NULL, NULL, NULL);
   Node *l = &n;
   Node *r = &n;
   Node *t;
@@ -128,7 +112,7 @@ Tree::insert (Atom *key)
 {
   if (root == 0)
     {
-      root = new Node (key);
+      root = new Node (key, NULL, NULL);
       return;
     }
   root = splay (key->name, root);

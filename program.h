@@ -59,13 +59,6 @@ public:
   //Vector which will have all the clauses
   vector<Clause*> clauses;
 
-  //this number will contain a number of atoms contained in grounded program passed to cmodels
-  //It is needed for the correct implementation of Ctable::getNumberGroundedAtoms()
-  //and Ctable::Solve(int* answerset_lits, int& num_atoms)
-  //(since number_of_atoms will contain a different number after a number of 
-  //simplifications done on a program
-  long original_number_of_atoms;
-  
   long number_of_atoms;
   int number_of_rules;
   int number_of_complitions; 

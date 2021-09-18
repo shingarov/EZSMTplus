@@ -30,7 +30,7 @@ class Atom;
 class Tree
 {
 public:
-  Tree ();
+  Tree () : root(NULL) {}
   ~Tree ();
 
   Atom *find (const char *);
@@ -43,8 +43,9 @@ private:
   class Node
   {
   public:
-    Node (Atom *k = 0, Node *l = 0, Node *r = 0);
-    ~Node ();
+    Node (Atom *key, Node *left, Node *right) :
+            key(key),left(left),right(right) {}
+    ~Node () {}
     
     Atom *key;
     Node *left;

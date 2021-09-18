@@ -66,13 +66,6 @@ typedef enum {
   IMPL
 } Connector;
 
-typedef enum {
-	FD,
-	R,
-	MIXED
-} LogicType;
-
-
  typedef enum {
   UNSAT = -1 , 
   UNKNOWN =0 ,

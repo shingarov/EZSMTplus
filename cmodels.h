@@ -49,14 +49,11 @@ public:
   	  	  	  	  	   //LRVarIDs[ID]=1, if the Level Ranking Variable with this ID exists
 
   void * satMngMinimality;
-  void * zchaffMng;
-
-  SimpSolver* minisatSolver; //minisat solver
 
   //we need these in case if sat solver is called from outside
   char command[512];
 
-  void cmodels(); //runs translation invokation and so on
+  char *cmodels(); //runs translation invokation and so on
   void markExternallyConstrainedAtoms (int* constainted_ayoms, int num_atoms, bool* trueExternal);
   void singleSolve(int* answerset_lits,  int& num_atoms);
   void init(int* answerset_lits, int& num_atoms, const char **&symbolTable, int &symbolTableEntries);
@@ -82,7 +79,6 @@ protected:
   void printCycles(const int&numSCC);
   void printCons();
   void printM();
-  void printWFM();
   void printMminus();
   //if consdisj passed then mminus marked by consdisj assgnments
   //if it is not passed then mminus is diffence between inM and Cons
@@ -116,45 +112,17 @@ protected:
   // and also we will creat the clauses for _fales 
   // like createFalseHeadClauses(Atom* a) does
 
-
-
-  void print_output_for_sat();// populates Clause databases of different solvers
-                              // or calls to create dimacsxxx.out file standard for various solvers
-
-  void print_DIMACS(); //creates dimacsxxx.out file standard for various solvers
-                       //      or smt-dimacs.out for smt-connection
-
-
-
-  void print_output_for_BCircuit();//creates cmodels.out which is circuit description
+  char *print_output_for_sat();
 
   void print_completion();
   void print_clauses();
 
-
   Result call_satSolver();
-  Result preprocessing(bool& emptyprogram);
+  void preprocessing();
 
-
-
-
-  void loadClausesToZchaffManager();
-
-  //add clauses performs simplifications 
-  //within minisat
-  //therefore it can not that the formulas is UNSAT
-  //and return false
-  bool loadClausesToMinisat(bool=true);//either permanent or learn
   //loop formulas can be learned for time only
   void addReasonClause(int* reason);
   void print_time();
-
-  Result call_relsat();
-  Result call_assat_zchaff();
-
-
-  
-
 
   void printReason(int* assignment, int found);
   void printSolution(bool* assignment, int found);
@@ -169,7 +137,6 @@ protected:
   void buildClausesOfLoopFormula(const vector<Atom*> & atomsSCC,
 								 const  vector<NestedRule*> & rulesOfLoop);
 
-
   void printRules(vector<NestedRule*>& rules);
 
   void printAtoms(vector<Atom*>& atoms);
@@ -179,10 +146,6 @@ protected:
 						   const vector<NestedRule*>& rulesOfLoopsHeads,
 						   const int& inLoop,
 						   int* =0);
- //returns Number of Loopformulas build
-  Result call_simo();
-  Result call_zchaff();
-  Result call_minisat();
 
   void translateClauseToReason(int* reason, int & reasonSize);
   void addAssignmentClause(bool* assignments);
@@ -236,33 +199,14 @@ protected:
 
   void findSCC(long* atomCC,list<Atom*>& mminus, long & numSCC, bool posDependency, const bool & wrtModel);
 
-
-
-
- 
- 
   void populate_answerset_lits_wfm(int* answerset_lits, int& num_atoms);
-
   void reasonSolverTime();
-
-  
   void createModelVerificationManagerMin(vector<Atom*> &atomsSCC);
-
-
-
   int extendModelVerificationManager(bool* assignment);
-
-
-  Timer solverTimer;
-  Timer reasonTimer;
-  // Timer preprocessingTimer;
-  // Timer postprocessingTimer;
 
   //Functions for disjunctive case
   Atom* createAuxAtom(Atom* head,NestedRule* cr);  
   
-
-
   //Create auxiliary atom for conjunctions in level ranking formula.
   Atom* createAuxAtom2(Atom* head,NestedRule* cr);
   //Create auxiliary atom for conjunctions in level ranking formula. And set isRR.
@@ -299,7 +243,6 @@ protected:
 						   int & counter,
 						   const int& inLoop);
   void clean();
-  void setupFilenames();
 
   void placeToApi(Atom** start, Atom** end, bool truth);
   void resetApi();

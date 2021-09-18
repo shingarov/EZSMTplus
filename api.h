@@ -26,12 +26,10 @@
 #define API_H
 #include "graphscc.h"
 #include "defines.h"
-#include "timer.h"
-//#include "wf.h"
 #include <iostream>
-#include <string>
+#include <string.h>
 #include <map>
-#include"SimpSolver.h"
+#include <list>
 
 using namespace std;
 class Program;

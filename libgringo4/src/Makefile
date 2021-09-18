@@ -1,7 +1,7 @@
 all: libgringo.a
 
 .cc.o:
-	g++-7 -c -std=c++11 -O0 -ggdb -I.. -o $@ $<
+	g++-7 -c -std=c++11 -fPIC -O0 -ggdb -I.. -o $@ $<
 
 OBJS = python.o lua.o terms.o term.o scripts.o \
 	input/literal.o \

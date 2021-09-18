@@ -319,13 +319,16 @@ Api::listApi::grow (long sz)
 Api::Api (Program *p)
   : program (p) 
 {
-  init = new Init;  
+  pointer_to_tree = new Tree;
+  tree = new Tree;
+  init = new Init;
 }
 
 Api::~Api ()
-{ delete init;
+{
+  delete init;
   delete pointer_to_tree;
-
+  delete tree;
 }
 
 //

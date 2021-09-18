@@ -2,7 +2,6 @@
 #define OUTPUT_H
 #include<cstring> 
 #include "defines.h"
-#include "timer.h"
 #include "param.h"
 #include "program.h"
 using namespace std;
@@ -23,17 +22,6 @@ public:
   long numSameBodies;
   long numRules;
 
-
-  //timers
-  Timer timerAll;
-  Timer timerTranslation;
-  Timer timerCompletion;
-  Timer timerClausification;
-  Timer timerVerification;
-  Timer timerLoopFormula;
-  Timer timerSat;
-
-
   //for statistics
   long numLoops;
   long numELoops;
@@ -53,16 +41,11 @@ public:
   void PrintStats();
   void print_timings();
   void print();
-  void print_assignment(bool* assignment);
-  void print_wfm();
-  //returns false if unsat
-  Result print_relsat_solutions(char* solver_out);
   Result interpret_relsat(char* solver_out, 
 						bool* sol);
   Result interpret_assat_zchaff(char* solver_out, 
 						bool* sol);
   long findNextAtom(char* buf, long &i);
-  inline void start_output();
   inline void disj_output();
   inline void tight_output();
   inline void hcf_output();
@@ -73,15 +56,6 @@ public:
 
 };
 
-inline  void 
-Output::start_output(){
-  if(asparagus==STANDARD)
-	printf("Answer: %ld \n Answer set: ",numSolutions); 
-  else if (asparagus==ASPARAGUS)
-	printf("Answer Set: "); 
-
-  
-}
 inline  void 
 Output::tight_output(){
   if(asparagus==STANDARD)

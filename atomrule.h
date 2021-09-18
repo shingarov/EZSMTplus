@@ -85,7 +85,6 @@ public:
 	original_id=id;
   }
   void checkDoubleCycle();
-  void printsmt(FILE *file);
   void setBTrue ();
   void setComputeTrue ();
   void setComputeTrue0 ();
@@ -133,11 +132,9 @@ public:
 
 
   void print();
-  void printClean(FILE * =stdout);
+  int  printClean(char*);
   void printRules(); 
   void printNestedRules();
-  void printBCircuit(FILE* file);
-  void printCompletionBCircuit(FILE* file, char*  gatename);
 
   list<NestedRule*> nestedRules; //list which contains pointers to the rules
                                  //in which this atom is in the head
@@ -187,7 +184,6 @@ public:
   bool inMminus;
   int inLoopId;
   bool cons; 
-  bool scopeNegAsFail;
 
   
   int inLoop;
@@ -256,7 +252,6 @@ class NestedRule : public FunctionalityRule
 
   void finishRule();//everytime rule is created we verify that
                     //all its atoms are initialized  
-  void printBCircuit(FILE* file, Atom* a);
   bool erased; //used in building reduct, rule is erased whenever it is not 
                //satisfied by the model
 
@@ -599,7 +594,6 @@ public:
   void initCompletionNbodyFromApi(Api* api);
   void initCompletionNbodyFromCompApi(Api* api);
   void print ();
-  void printBCircuit( FILE* file,char* gateName);
 
   Atom *head;        // The head of the rule
   Atom **headDisj;   // The head of the rule if it is Disj
@@ -628,9 +622,7 @@ class Clause
 {
  public:
   void print ();  
-  void printcnf (FILE* file);
-  void printsmtcnf (FILE* file);
-  void printBCircuit( FILE* file,char* gateName);
+  int  printsmtcnf (char*);
 
   void translateToZchaffClause (int* clause, int &size);
   void translateToMinisatClause (int* clause, int &size);

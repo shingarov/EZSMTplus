@@ -31,7 +31,6 @@
 #include <vector>
 #include "program.h"
 #include "atomrule.h"
-#include "ctable.h"
 #include "defines.h"
 
 

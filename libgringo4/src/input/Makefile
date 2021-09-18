@@ -7,7 +7,7 @@ OBJS = literal.o literals.o programbuilder.o statement.o groundtermparser.o aggr
 all: nongroundgrammar.cc groundtermgrammar.cc groundtermlexer.hh nongroundlexer.hh $(OBJS)
 
 .cc.o:
-	g++-7 -c -std=c++11 -O0 -ggdb -I../.. -o $@ $<
+	g++-7 -c -std=c++11 -fPIC -O0 -ggdb -I../.. -o $@ $<
 
 
 nongroundgrammar.cc: nongroundgrammar.yy

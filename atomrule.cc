@@ -27,6 +27,7 @@
 //#include <regex>
 #include <string>
 #include <limits.h>
+#include <stdio.h>
 #ifdef USEDOUBLE
 #include <math.h>
 #endif
@@ -35,9 +36,8 @@
 #include "api.h"
 #include "defines.h"
 
-
-
-
+bool Atom::change = false;
+bool Atom::conflict = false;
 
 static Auxiliary pos_aux(true);
 Atom::Atom (Program * p0)
@@ -46,7 +46,6 @@ Atom::Atom (Program * p0)
   //  change=false;
   //conflict=false;
   //  headActive=0;
-  scopeNegAsFail=false;
   inLoop=-1;
   inRule=UNDEF;
   choiceruleSpecified= false;
@@ -199,12 +198,12 @@ Atom::printNestedRules(){
 //
 // This is no longer there only for debugging purporses
 // So do not change: I use it to output to casp-dimacs form
-void
-Atom::printClean(FILE * file){
+int
+Atom::printClean(char* buffer){
   if(strcmp("#noname#",atom_name()))
-    fprintf(file, "%s",atom_name());
+    return sprintf(buffer, "%s", atom_name());
   else 
-    fprintf(file, "%d",id);
+    return sprintf(buffer, "%d", id);
 
 }
 void
@@ -229,90 +228,6 @@ Atom::print(){
   cout<<":hof "<<headof;
 }
 
-void
-Atom::printBCircuit(FILE* file){  
-  if(strcmp("#noname#",atom_name()))
-	fprintf(file, "atom_%d",id);
-  else
-	fprintf(file, "_%d",id);
-
-}
-void
-Atom::printCompletionBCircuit(FILE* file, char*  gatename){  
-  if(Bpos){
-	printBCircuit(file);
-	fprintf(file, "; \n ASSIGN ");
-	printBCircuit(file);
-	fprintf(file, "; \n");
-	return;
-  }
-  if(choiceruleSpecified){
-	printBCircuit(file);
-	fprintf(file, ";\n");
-	return;
-  }
-  //Bneg and no supporting rules -- we simply through it out
-  //it is not false_atom
-  if(Bneg && nestedRules.size()==0){
-	return;
-  }
- 	
-  //head is not in any cycle in POSNEG dependency graph
-  if(inLoop==-1){
-	 printBCircuit(file);
-	 fprintf(file, ":= ");
-  }
-  else{
-	fprintf(file, "%s := ", gatename);
-	printBCircuit(file);
-	fprintf(file, " == ");
-  }
-  if(nestedRules.size()==0){
-	fprintf(file, "F;\n");
-	if(inLoop!=-1){//if in some loop
-	  fprintf(file,"ASSIGN %s;\n",gatename);
-	}
-	return;
-  }
-  if(nestedRules.size()>1){
-	fprintf(file, "OR(");
-  }
-  bool comma = false;
-
-  for(list<NestedRule*>::iterator itrNRule=nestedRules.begin();
-	  itrNRule!=nestedRules.end();
-	  itrNRule++){
-	if (comma){
-		fprintf(file, ",");
-		
-	}
-	comma=true;
-	(*itrNRule)->printBCircuit(file,this);
-	
-  }
-  if(nestedRules.size()>1){
-	  fprintf(file, ");\n");
-  }
-  else  
-	fprintf(file, ";\n");
-  //if the atom is in some cycle 
-  //we assign gatename
-  if(inLoop!=-1){	
-	fprintf(file,"ASSIGN %s;\n",gatename);
-  }
-  if(computeTrue){
-	fprintf(file,"ASSIGN ");
-	printBCircuit(file);
-	fprintf(file,";\n ");
-  }
-  if(Bneg){
-	fprintf(file,"ASSIGN ~");
-	printBCircuit(file);
-	fprintf(file,";\n ");
-  }
-
-  
-}
 bool
 Atom::found(){
   for(list<NestedRule*>::iterator itrNRule=pBodyRules.begin();
@@ -2170,63 +2085,7 @@ Completion::print ()
     cout << "." << endl;
   //  cout <<"EOC";
 }
-void
-Completion::printBCircuit (FILE* file, char* gatename)
-{
-  //head is not in any cycle in POSNEG dependency graph
-  if(head->inLoop==-1){
-	 head->printBCircuit(file);
-	 fprintf(file, ":= ");
-  }
-  else{
-	fprintf(file, "%s := ", gatename);
-	head->printBCircuit(file);
-	if(eq==EQUIV){
-	  if (nbody)
-		fprintf(file, " == ");
-	  else fprintf(file, " == T "); 
-	}else{
-	  if (nbody)
-		fprintf(file, " => ");
-	  else  fprintf(file, " => T");
-	}
-  }
-  Atom **a;
-  int comma = 0;
-  if (connector==OR)
-	 fprintf(file, " OR(");
-  else
-	fprintf(file, " AND(");
-  for (a = pbody; a != pend; a++)
-    {
-      if (comma)
-		fprintf(file, ",");
-     
-	  (*a)->printBCircuit(file);
-      comma = 1;
-    }
-  for (a = nbody; a != nend; a++)
-    {
-      if ( comma)
-		fprintf(file, ",");
-	  fprintf(file, "~");
-	  (*a)->printBCircuit(file);
-      comma = 1;
-    }
-    fprintf(file, ");\n");
-	//if the atom is in some cycle we should define the completion as a separate clause
-	if(head->inLoop!=-1){
-
-	  fprintf(file,"ASSIGN %s;\n",gatename);
-	}
-	else if(head->Bpos||head->computeTrue){
-	  fprintf(file,"ASSIGN ");
-	  head->printBCircuit(file);
-	  fprintf(file,";\n ");
-	  head->Bpos=false;
-	  head->computeTrue=false;
-	}
-}
+//
 //******* Nested Rule is for Cmodels use
 // as all the rules are translated in the format of
 // Nested Rules
@@ -2427,47 +2286,7 @@ NestedRule::print ()
   cout << '.' << endl;
 }
 
-void
-NestedRule::printBCircuit(FILE* file, Atom* h)
-{
-  Atom **a;
-  bool comma = false;
-  if(sizeHead()==1 && sizeBody()==0){
-	fprintf(file, "T");
-	return;
-  }
-  if(sizeHead()!=1 || sizeBody()>1)
-	fprintf(file, "AND(");
-  for (a = head; a != hend; a++)
-    {
-	  if(h!=(*a)){
-		if(comma)
-		  fprintf(file,",");
-		fprintf(file,"~");
-		(*a)->printBCircuit(file);
-		comma = true;
-	  }
-    }
-  for (a = pbody; a != nnend; a++)
-    {
-      if (comma)
-		 fprintf(file,",");
-	  (*a)->printBCircuit(file);
-      comma = true;
-    }
-  for (a = nbody; a != nend; a++)
-    {
-	  if(comma)
-		  fprintf(file,",");
-	  fprintf(file,"~");
-	  (*a)->printBCircuit(file);
-	  comma = true;
-    }
-  if(sizeHead()!=1 || sizeBody()>1) 
-	fprintf(file, ")");
-}
 //******* Clauses are the ones stored by cmodels
-//
 
 Clause::Clause ()
 {
@@ -2558,192 +2377,28 @@ Clause::print ()
     }
   cout << '.' << endl;
 }
-void
-Clause::printcnf (FILE* file)
+
+int
+Clause::printsmtcnf (char* buffer)
 {
+  int count = 0;
   Atom **a; 
   int comma = 0;
-  for (a = nbody; a != nend; a++)
-	{
-	  if (comma)
-		fprintf(file, " ");
-	  
-	  fprintf(file, " -%d",(*a)->id);
-	  comma = 1;
-	}
-  for (a = pbody; a != pend; a++)
-	{
-	  if (comma)
-		fprintf(file, " ");
-	  
-	  fprintf(file, " %d",(*a)->id);
-	  comma = 1;   
-	}
-  fprintf(file, " 0\n");
-}
-
-void
-Clause::printsmtcnf (FILE* file)
-{
-  Atom **a; 
-  int comma = 0;
-  for (a = nbody; a != nend; a++)
-	{
-	  if (comma)
-		fprintf(file, " ");
-	  
-	  fprintf(file, "-");
-	  (*a)->printClean(file);
-	  comma = 1;
-	}
-  for (a = pbody; a != pend; a++)
-	{
-	  if (comma)
-		fprintf(file, " ");
-	  (*a)->printClean(file);
-	  comma = 1;   
-	}
-  fprintf(file, " 0\n");
-}
-
-void
-Atom::printsmt(FILE* file)
-{
-  /*  std::string str;
-  std::string comma (",");
-  std::string leftp ("(");
-  std::string rightp (")");
-  std::string::size_type foundcomma = str.find(comma);
-  char * pch;
-  str.assign(atom_name());
-  fprintf(file,"(declare-fun |");
-  printClean(file);
-  fprintf(file,"| () Bool)\n");
-  if(strncmp("cspvar",atom_name(),6)==0){
-    pch = strtok (str,",");
-    while (pch != NULL)
-      {
-	printf ("%s\n",pch);
-	pch = strtok (NULL, ",");
-      }    
+  for (a = nbody; a != nend; a++) {
+      if (comma) count += sprintf(buffer+count, " ");
+      count += sprintf(buffer+count, "-");
+      count += (*a)->printClean(buffer+count);
+      comma = 1;
   }
-  else 
-    fprintf(file, "%d",id);
-  */
-
-  char str[256];
-  char name[256];
-  char sth[256];
-  int l;
-  int u;
-
-  if(strncmp("cspvar",atom_name(),6)==0){
-    strcpy(str,atom_name());
-    sscanf(str,"cspvar(%[^,],%d,%d,)",name,&l,&u);
-    //  cout<<name<<";"<<l<<";"<<u<<";"<<endl;
-    fprintf (file,"(assert(=|%s| true))\n",str);
-    fprintf (file,"(declare-fun |%s| () Int))\n",name);
-    fprintf (file,"(assert (<= %d |%s| %d))\n",l,name,u);
+  for (a = pbody; a != pend; a++) {
+      if (comma) count += sprintf(buffer+count, " ");
+      count += (*a)->printClean(buffer+count);
+      comma = 1;
   }
+  count += sprintf(buffer+count, " 0\n");
+  return count;
 }
 
-void
-Clause::printBCircuit ( FILE* file,char* gatename ){
-  //special case where we do not need to introduce a gate;
-  //atom it self is a gate
-  if(sizeCl()==1){
-	if(sizePbody()==1&&((*nbody)->Bpos==false
-						&&(*nbody)->computeTrue==false))
-	  {
-		//we skip the case
-	  }
-	else{
-	  (*nbody)->printBCircuit(file);
-	  fprintf(file, ";\n ASSIGN ");
-	  if(sizeNbody()==1)
-	  	fprintf(file, "~");
-	  (*nbody)->printBCircuit(file);
-	  fprintf(file, ";\n");
-	  return;
-	}
-  }
-
-  fprintf(file, "%s := OR(", gatename);
-  Atom **a; 
-  int comma = 0;
-  for (a = nbody; a != nend; a++)
-	{
-	  if (comma)
-		fprintf(file, ", ");
-	  fprintf(file, " ~");
-	  (*a)->printBCircuit(file);
-	  comma = 1;
-	}
-  for (a = pbody; a != pend; a++)
-	{
-	  if (comma)
-		fprintf(file, ", ");
-	  (*a)->printBCircuit(file);
-	  comma = 1;   
-	}
-  fprintf(file, ");\nASSIGN %s;\n",gatename);
-}
-
-void
-Clause::translateToZchaffClause (int* clause, int &size)
-{
-  //  print();
-  Atom** a;
-  size=0;
-  for (a = nbody; a != nend; a++)
-	{
-	  clause[size]=(*a)->id*2+1;
-	  size++;
-	}
-  for (a = pbody; a != pend; a++)
-	{
-	  clause[size]=(*a)->id*2;
-	  size++;
-	}
-
-}
-//
-//Minisat takes all the clasues
-void
-Clause::translateToMinisatClause (int* clause, int &size)
-{
-  Atom** a;
-  size=0;
-  for (a = nbody; a != nend; a++)
-	{
-	  clause[size]=-(*a)->id;
-	  size++;
-	}
-  for (a = pbody; a != pend; a++)
-	{
-	  clause[size]=(*a)->id;
-	  size++;
-	}
-}
-void
-Clause::translateToSimoReason (int* clause, int &size, const int& sizeCl)
-{
-
-  Atom** a;
-  for(long i=0; i<sizeCl; i++)
-	clause[i]=0;//by default atom is not in reason
-  size=0;
-  for (a = nbody; a != nend; a++)
-	{
-	  clause[(*a)->id-1]=2;
-	  size++;
-	}
-  for (a = pbody; a != pend; a++)
-	{
-	  clause[(*a)->id-1]=1;
-	  size++;
-	}
-}
 void
 NestedRule::setType(RuleType ruleType){
   type=ruleType;

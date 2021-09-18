@@ -1,4 +1,4 @@
-#include <iostream>
+#include <assert.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -6,26 +6,23 @@
 #include <limits.h>
 #include <float.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <stdio.h>
+#include <ctype.h>
+
+#include <iostream>
 #include <fstream>
 #include <cstdlib>
 #include <cstdio>
-
+#include <sstream>
 #include <set>
 #include <vector>
 #include <list>
 #include <algorithm>
 
-#include "print.h"
 #include "interpret.h"
 #include "atomrule.h"
 #include "cmodels.h"
 #include "defines.h"
-#include "SimpSolver.h"
-#include "simo.h"
-#include <sstream>
-#include <ctype.h>
 
 using namespace std;
 
@@ -38,7 +35,6 @@ Cmodels::Cmodels() {
         output.param = &param;
 
         satMngMinimality = 0;
-        zchaffMng = 0;
         LRVarIDs.clear();
 
 }
@@ -140,8 +136,7 @@ void Cmodels::sortRules() {
 //translation into nested normal from (elimination of weigth constraints
 //
 
-Result Cmodels::preprocessing(bool& emptyprogram) {
-        emptyprogram = false;
+char *Cmodels::cmodels() {
         cout << "Cmodels::preprocessing()" << endl;
 
         if (program.number_of_atoms > 0) {
@@ -168,7 +163,6 @@ Result Cmodels::preprocessing(bool& emptyprogram) {
         
         bool conflict = wellFounded();
         translate_all_to_nested_rules();
-        param.verifyMethod = NONDISJ;
         
         if (param.sort)
                 findSameBodies();
@@ -184,8 +178,6 @@ Result Cmodels::preprocessing(bool& emptyprogram) {
                 printCycles(numSCC);
         }
         output.tight_output();
-        if (program.tight)
-                param.verifyMethod = TIGHT;
 
         createCompletion();
         if (program.tight)
@@ -207,54 +199,11 @@ Result Cmodels::preprocessing(bool& emptyprogram) {
 
         // normally this will give UNKNOWN,
         // but it may detect a p=-p and be clever to report UNSAT
-        if (createClauses() == UNSAT)
-                return UNSAT;
+        if (createClauses() == UNSAT) return NULL;
 
         eraseFalseAtomsFromClauses();
         createSingleAtomClauses();      //from Bpos and Bneg
-
-        if (program.number_of_clauses <= 0) { //initial or after wf the program  is empty
-                emptyprogram = true;
-                return SAT;
-        }
-        setupFilenames();
-        print_output_for_sat();
-        return (Result) UNKNOWN;
-}
-
-void Cmodels::init(int* answerset_lits, int& num_atoms,
-                const char **&symbolTable, int &symbolTableEntries) {
-        num_atoms = -2;
-        Result ret = (Result) UNKNOWN;
-        bool programempty = false;
-        ret = preprocessing(programempty);
-        switch (ret) {
-        case SAT: {
-                if (!programempty)
-                        populate_answerset_lits_wfm(answerset_lits, num_atoms);
-                else
-                        num_atoms = 0;
-                break;
-        }
-        case UNSAT: {
-                num_atoms = -1;
-                break;
-
-        }
-        }
-
-        int maxid = 0;
-        for (int i = 0; i < program.number_of_atoms; i++)
-                if (program.atoms[i]->get_lparse_id() > maxid)
-                        maxid = program.atoms[i]->get_lparse_id();
-        symbolTableEntries = maxid;
-        symbolTable = (const char **) calloc(symbolTableEntries + 1,
-                        sizeof(const char *));
-        for (int i = 0; i < program.number_of_atoms; i++)
-                if (program.atoms[i]->get_lparse_id() >= 0) {
-                        const char *s = program.atoms[i]->atom_name();
-                        symbolTable[program.atoms[i]->get_lparse_id()] = s;
-                }
+        return print_output_for_sat();
 }
 
 void Cmodels::populate_answerset_lits_wfm(int* answerset_lits, int& num_atoms) {
@@ -266,725 +215,6 @@ void Cmodels::populate_answerset_lits_wfm(int* answerset_lits, int& num_atoms) {
                 }
         }
 
-}
-
-void Cmodels::cmodels() {
-
-        Result ret = (Result) UNKNOWN;
-        bool programempty = false;
-        ret = preprocessing(programempty);
-        switch (ret) {
-        case SAT: {
-                output.sat = SAT;
-                output.numSolutions++;
-                if (!programempty)
-                        output.print_wfm();
-                else {
-                        cerr << "Program is empty." << endl;
-                        //empty set is solution
-                        output.start_output();
-                        output.end_output();
-                }
-                return;
-        }
-        case UNSAT: {
-                output.sat = UNSAT;
-                output.false_output();
-                return;
-        }
-        }
-
-                //call Z3
-
-                //if (param.extmany != 1)
-                        param.PrintExtAS = true;
-
-                string fileName(param.dimacsFileName);
-                string solverCommand = "$EZSMTPLUS/tools/z3 -smt2 ";
-                stringstream ss;
-                ss.clear();
-                ss.str("");
-                ss << "python $EZSMTPLUS/tools/ezcsp-dimacs-to-smt.py "
-                                << param.dimacsFileName;
-                if (param.NLLogic)
-                        ss << " nonlinear ";
-                ss << " > SMT" << fileName.substr(17, fileName.size() - 21);
-                cout << "SMT" << fileName.substr(17, fileName.size() - 21)
-                                << " file is produced" << endl;
-                system(ss.str().c_str());
-
-                //computing models
-                int fileCount = 0;
-                do {
-                        cout << "Computing the " << fileCount + 1 << "th answer set"
-                                        << endl;
-                        ss.clear();
-                        ss.str("");
-                        if (fileCount == 0)
-                                ss << solverCommand << "SMT"
-                                                << fileName.substr(17, fileName.size() - 21)
-                                                << " > Model"
-                                                << fileName.substr(17, fileName.size() - 21);
-                        else
-                                ss << solverCommand << "SMT"
-                                                << fileName.substr(17, fileName.size() - 21) << "_"
-                                                << fileCount << " > Model"
-                                                << fileName.substr(17, fileName.size() - 21) << "_"
-                                                << fileCount;
-                        cout << "Running command: " << ss.str().c_str() << endl;
-                        system(ss.str().c_str());
-                        if (fileCount == 0)
-                                cout << "Model" << fileName.substr(17, fileName.size() - 21)
-                                                << " file is produced" << endl;
-                        else
-                                cout << "Model" << fileName.substr(17, fileName.size() - 21)
-                                                << "_" << fileCount << " file is produced" << endl;
-                        //read the previous model
-                        ostringstream model;
-                        ss.clear();
-                        ss.str("");
-                        if (fileCount == 0)
-                                ss << "Model" << fileName.substr(17, fileName.size() - 21);
-                        else
-                                ss << "Model" << fileName.substr(17, fileName.size() - 21)
-                                                << "_" << fileCount;
-                        ifstream in_file(ss.str().c_str());
-                        model << in_file.rdbuf();
-                        string ModelStr = model.str();
-                        in_file.close();
-                        istringstream iss(ModelStr);
-                        string line;
-                        getline(iss, line);
-                        // read the previous SMT file.
-                        ostringstream SMT;
-                        ss.clear();
-                        ss.str("");
-                        if (fileCount == 0)
-                                ss << "SMT" << fileName.substr(17, fileName.size() - 21);
-                        else
-                                ss << "SMT" << fileName.substr(17, fileName.size() - 21) << "_"
-                                                << fileCount;
-                        ifstream in_file_SMT(ss.str().c_str());
-
-                        SMT << in_file_SMT.rdbuf();
-                        string SMTStr = SMT.str();
-                        in_file_SMT.close();
-
-                        //if the previous model is satisfiable, then enumerating extended answer sets
-                        if (line == "sat") {
-
-                                if (param.extmany > 1 || param.extmany == 0) {
-                                        int extfileCount = 0;
-
-                                        //Making sure that we find the same answer set
-                                        string str_search = "; Check satisfiability";
-                                        string CurVar = "";
-                                        ss.clear();
-                                        ss.str("");
-                                        while (getline(iss, line)) {
-                                                //if a variable name is read, store it in curVar.
-                                                if (line.find("(define-fun ") != string::npos) {
-                                                        int StartPos = line.find("(define-fun ");
-                                                        int EndPos = line.find(" () ");
-                                                        CurVar = line.substr(StartPos + 12,
-                                                                        EndPos - StartPos - 12);
-                                                }
-
-                                                //if the variable is not level ranking variable
-                                                if (CurVar.find("required(") == string::npos
-                                                                && CurVar.find("cspvar") == string::npos
-                                                                && CurVar.find("cspdomain") == string::npos) {
-                                                        // if the variable is asserted to be false
-                                                        if (line.find(" false)") != string::npos) {
-
-                                                                if (CurVar.substr(0, 1) == "|") {
-                                                                        if (!isdigit(CurVar[1]))
-                                                                                ss << "(assert  (not " << CurVar
-                                                                                                << "))\n";
-                                                                } else {
-                                                                        if (!isdigit(CurVar[0]))
-                                                                                ss << "(assert  (not |" << CurVar
-                                                                                                << "|))\n";
-                                                                }
-                                                        }
-                                                        // if the variable is asserted to be true
-                                                        else if (line.find(" true)") != string::npos) {
-
-                                                                if (CurVar.substr(0, 1) == "|") {
-                                                                        ;
-                                                                        if (!isdigit(CurVar[1]))
-                                                                                ss << "(assert " << CurVar << ")\n";
-                                                                } else {
-
-                                                                        if (!isdigit(CurVar[0])) {
-                                                                                ss << "(assert " << "|" << CurVar
-                                                                                                << "|)\n";
-                                                                        }
-                                                                }
-                                                        }
-
-                                                }
-                                        }
-                                        ss << "\n; Check satisfiability";
-                                        string str_replace = ss.str();
-                                        size_t assertionPos = SMTStr.find(str_search);
-
-                                        SMTStr.replace(assertionPos, string(str_search).length(),
-                                                        str_replace);
-
-                                        ss.clear();
-                                        ss.str("");
-                                        if (fileCount == 0)
-                                                ss << "SMT"
-                                                                << fileName.substr(17, fileName.size() - 21);
-                                        else
-                                                ss << "SMT" << fileName.substr(17, fileName.size() - 21)
-                                                                << "_" << fileCount;
-                                        ss << "-0";
-                                        ofstream out_file(ss.str().c_str());
-                                        cerr << "writing SMT file: " << ss.str().c_str() << endl;
-                                        out_file << SMTStr;
-
-                                        do {
-                                                //Solving
-                                                if (extfileCount != 0) {
-                                                        cout << "Computing the " << extfileCount + 1
-                                                                        << "th extended answer set" << endl;
-                                                        ss.clear();
-                                                        ss.str("");
-                                                        if (fileCount == 0)
-                                                                ss << solverCommand << "SMT"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21) << "-"
-                                                                                << extfileCount << " > Model"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21) << "-"
-                                                                                << extfileCount;
-                                                        else
-                                                                ss << solverCommand << "SMT"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21) << "_"
-                                                                                << fileCount << "-" << extfileCount
-                                                                                << " > Model"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21) << "_"
-                                                                                << fileCount << "-" << extfileCount;
-                                                        cout << "Running command: " << ss.str().c_str()
-                                                                        << endl;
-                                                        system(ss.str().c_str());
-                                                        if (fileCount == 0)
-                                                                cout << "Model"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21) << "-"
-                                                                                << extfileCount << " file is produced"
-                                                                                << endl;
-                                                        else
-                                                                cout << "Model"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21) << "_"
-                                                                                << fileCount << "-" << extfileCount
-                                                                                << " file is produced" << endl;
-                                                }
-
-                                                //read the previous model
-                                                ostringstream extmodel;
-                                                ss.clear();
-                                                ss.str("");
-                                                if (fileCount == 0)
-                                                        ss << "Model"
-                                                                        << fileName.substr(17,
-                                                                                        fileName.size() - 21);
-                                                else
-                                                        ss << "Model"
-                                                                        << fileName.substr(17, fileName.size() - 21)
-                                                                        << "_" << fileCount;
-                                                if (extfileCount != 0)
-                                                        ss << "-" << extfileCount;
-                                                ifstream extin_file(ss.str().c_str());
-                                                extmodel << extin_file.rdbuf();
-                                                string extModelStr = extmodel.str();
-                                                extin_file.close();
-                                                istringstream extiss(extModelStr);
-                                                string extline;
-                                                getline(extiss, extline);
-
-                                                // read the previous SMT file.
-                                                ostringstream extSMT;
-                                                ss.clear();
-                                                ss.str("");
-                                                if (fileCount == 0)
-                                                        ss << "SMT"
-                                                                        << fileName.substr(17,
-                                                                                        fileName.size() - 21);
-                                                else
-                                                        ss << "SMT"
-                                                                        << fileName.substr(17, fileName.size() - 21)
-                                                                        << "_" << fileCount;
-                                                ss << "-" << extfileCount;
-                                                ifstream extin_file_SMT(ss.str().c_str());
-                                                extSMT << extin_file_SMT.rdbuf();
-                                                string extSMTStr = extSMT.str();
-                                                extin_file_SMT.close();
-
-                                                //if the previous model is satisfiable, then make sure that we find a different value assignment
-                                                if (extline == "sat") {
-                                                        stringstream liness;
-                                                        string str_search = "; Check satisfiability";
-                                                        ss.clear(); //store the denial of the model in ss
-                                                        ss.str("");
-
-                                                        string CurVar = "";
-                                                        string CurVal = "";
-                                                        ss << "(assert (or ";
-                                                        while (getline(extiss, extline)) {
-                                                                //if a variable name is read, store it in curVar.
-                                                                if (extline.find("(define-fun ") != string::npos) {
-                                                                        int StartPos = extline.find("(define-fun ");
-                                                                        int EndPos = extline.find(" () ");
-                                                                        CurVar = extline.substr(StartPos + 12,
-                                                                                        EndPos - StartPos - 12);
-                                                                } else continue;
-
-                                                                //if it is a variable, store its value in curVal
-                                                                if (extline.find(" Int") != string::npos || extline.find(" Real") != string::npos) {
-                                                                        getline(extiss, extline);
-
-                                                                        liness.clear();
-                                                                        liness.str(extline);
-                                                                        getline(liness, CurVal, ' ');
-                                                                        getline(liness, CurVal, ' ');
-                                                                        getline(liness, CurVal, ' ');
-                                                                        getline(liness, CurVal, ' ');
-                                                                        getline(liness, CurVal, ' ');
-                                                                        if (CurVal[1] == '-') {
-                                                                                getline(liness, CurVal, ' ');
-                                                                                CurVal = CurVal.substr(0,
-                                                                                                CurVal.length() - 1);
-                                                                                CurVal = "-" + CurVal;
-                                                                        }
-
-                                                                } else continue;
-
-                                                                //Add assertions
-
-                                                                if (CurVar.substr(0, 1) == "|") {
-                                                                        if (!isdigit(CurVar[1])
-                                                                                        && CurVar.find("cspvar")
-                                                                                                        == string::npos
-                                                                                        && CurVar.find("required(")
-                                                                                                        == string::npos
-                                                                                        && (CurVar[1] != 'l'
-                                                                                                        || CurVar[2] != 'r')
-                                                                                        && CurVar.find("cspdomain")
-                                                                                                        == string::npos) {
-                                                                                ss << " (distinct " << CurVar << " "
-                                                                                                << CurVal.substr(0,
-                                                                                                                CurVal.length() - 1)
-                                                                                                << ")";
-                                                                        }
-                                                                } else if (!isdigit(CurVar[0])
-                                                                                && CurVar.find("cspvar") == string::npos
-                                                                                && CurVar.find("required(")
-                                                                                                == string::npos
-                                                                                && (CurVar[0] != 'l' || CurVar[1] != 'r')
-                                                                                && CurVar.find("cspdomain")
-                                                                                                == string::npos) {
-                                                                        ss << " (distinct " << CurVar << " "
-                                                                                        << CurVal.substr(0,
-                                                                                                        CurVal.length() - 1) << ")";
-                                                                }
-
-                                                        }
-                                                        extfileCount++;
-                                                        ss << "))\n; Check satisfiability";
-                                                        string str_replace = ss.str();
-                                                        size_t assertionPos = extSMTStr.find(str_search);
-
-                                                        extSMTStr.replace(assertionPos,
-                                                                        string(str_search).length(), str_replace);
-
-                                                        ss.clear();
-                                                        ss.str("");
-                                                        if (fileCount == 0)
-                                                                ss << "SMT"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21);
-                                                        else
-                                                                ss << "SMT"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21) << "_"
-                                                                                << fileCount;
-                                                        ss << "-" << extfileCount;
-                                                        ofstream extout_file(ss.str().c_str());
-                                                        cerr << "writing SMT file: " << ss.str().c_str()
-                                                                        << endl;
-                                                        extout_file << extSMTStr;
-
-                                                } else {
-                                                        cout << "-------------------------" << endl;
-                                                        if (extline.find("(error ") != string::npos
-                                                                        || line.find("unknown") != string::npos
-                                                                        || line == "") {
-                                                                cerr
-                                                                                << " *** Error reported by SMT solver. See SMT solver's output "
-                                                                                << "Model"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21);
-                                                                if (fileCount != 0)
-                                                                        cerr << "_" << fileCount;
-                                                                if (extfileCount != 0)
-                                                                        cerr << "-" << extfileCount;
-                                                                cerr << ", and input file SMT"
-                                                                                << fileName.substr(17,
-                                                                                                fileName.size() - 21);
-                                                                if (fileCount != 0)
-                                                                        cerr << "_" << fileCount;
-                                                                if (extfileCount != 0)
-                                                                        cerr << "-" << extfileCount;
-                                                                cerr << " ***" << endl;
-                                                                exit(1);
-
-                                                        }
-                                                        break;
-                                                }
-
-                                        } while (param.extmany == 0 || extfileCount < param.extmany);
-                                }
-                        }
-                        //Report errors from SMT solvers
-                        else {
-                                cout << "-------------------------" << endl;
-                                if (line.find("(error ") != string::npos
-                                                || line.find("unknown") != string::npos || line == "") {
-                                        cerr << " *** Error reported by SMT solver. See output "
-                                                        << "Model"
-                                                        << fileName.substr(17, fileName.size() - 21);
-                                        if (fileCount != 0)
-                                                cerr << "_" << fileCount;
-                                        cerr << ", and input file SMT"
-                                                        << fileName.substr(17, fileName.size() - 21);
-                                        if (fileCount != 0)
-                                                cerr << "_" << fileCount;
-                                        cerr << " ***" << endl;
-                                        exit(1);
-
-                                }
-                        }
-
-                        iss.clear();
-                        iss.seekg(0);
-
-                        ss.clear();
-                        ss.str("");
-                        if (fileCount == 0)
-                                ss << "SMT" << fileName.substr(17, fileName.size() - 21);
-                        else
-                                ss << "SMT" << fileName.substr(17, fileName.size() - 21) << "_"
-                                                << fileCount;
-                        ifstream in_file_SMT2(ss.str().c_str());
-                        SMT.clear();
-                        SMT.str("");
-                        SMT << in_file_SMT2.rdbuf();
-                        SMTStr = SMT.str();
-                        in_file_SMT2.close();
-                        getline(iss, line);
-
-                        //if the previous model is satisfiable, then add assertion.
-                        //new assertions are added at the end of file so that
-                        //when creating assertions, we can ignore the assertions of number fileCount in the end.
-                        if (line == "sat") {
-                                string str_search = "; Check satisfiability";
-                                ss.clear(); //store the denial of the model in ss
-                                ss.str("");
-                                ss << "(assert (or ";
-                                string CurVar = "";
-                                while (getline(iss, line)) {
-
-                                        //if a variable name is read, store it in curVar.
-                                        if (line.find("(define-fun ") != string::npos) {
-                                                int StartPos = line.find("(define-fun ");
-                                                int EndPos = line.find(" () ");
-                                                CurVar = line.substr(StartPos + 12,
-                                                                EndPos - StartPos - 12);
-                                        }
-
-                                        //if the variable is not level ranking variable
-                                        if (CurVar.find("required(") == string::npos
-                                                        && CurVar.find("cspvar") == string::npos
-                                                        && CurVar.find("cspdomain") == string::npos) {
-                                                // if the variable is asserted to be true
-                                                if (line.find(" true)") != string::npos) {
-                                                        if (CurVar.substr(0, 1) == "|") {
-                                                                if (!isdigit(CurVar[1]))
-                                                                        ss << "(not " << CurVar << ") ";
-                                                        } else {
-                                                                if (!isdigit(CurVar[0]))
-                                                                        ss << "(not |" << CurVar << "|) ";
-                                                        }
-                                                }
-                                                // if the variable is asserted to be false
-                                                else if (line.find(" false)") != string::npos) {
-                                                        if (CurVar.substr(0, 1) == "|") {
-                                                                if (!isdigit(CurVar[1]))
-                                                                        ss << CurVar << " ";
-                                                        } else {
-                                                                if (!isdigit(CurVar[0]))
-                                                                        ss << "|" << CurVar << "| ";
-                                                        }
-                                                }
-
-                                        }
-                                }
-
-                                //If there is no atoms that could possibly have a different truth value,
-                                //then stop enumeration.
-                                if (ss.str() == "(assert (or ") {
-                                        cout << "No more answer sets available." << endl;
-                                        fileCount++;
-                                        break;
-                                }
-
-                                ss << "))\n; Check satisfiability";
-                                string str_replace = ss.str();
-                                size_t assertionPos = SMTStr.find(str_search);
-                                SMTStr.replace(assertionPos, string(str_search).length(),
-                                                str_replace);
-                                fileCount++;
-                                ss.clear();
-                                ss.str("");
-                                ss << "SMT" << fileName.substr(17, fileName.size() - 21) << "_"
-                                                << fileCount;
-                                ofstream out_file(ss.str().c_str());
-                                cerr << "writing SMT file: " << ss.str().c_str() << endl;
-                                out_file << SMTStr;
-
-
-
-                        }
-
-                        //if the previous model is unsatisfiable, then break.
-                        else {
-
-                                if (line != "unsat") {
-                                        cout << "No more answer sets available." << endl;
-                                        break;
-                                }
-
-                                if (line.find("(error ") != string::npos
-                                                || line.find("unknown") != string::npos) {
-                                        cout << "-------------------------" << endl;
-                                        cerr << " *** Error reported by SMT solver. See output "
-                                                        << "Model"
-                                                        << fileName.substr(17, fileName.size() - 21);
-                                        if (fileCount != 0)
-                                                cerr << "_" << fileCount;
-                                        cerr << ", and input file SMT"
-                                                        << fileName.substr(17, fileName.size() - 21);
-                                        if (fileCount != 0)
-                                                cerr << "_" << fileCount;
-                                        cerr << " ***" << endl;
-                                        exit(1);
-
-                                }
-
-                                break;
-                        }
-                } while (param.many == 0 || fileCount < param.many);
-
-                //printing answer sets
-                cout << "---------" << endl << "Number of answer sets: " << fileCount
-                                << endl;
-                for (int c = 0; c < fileCount; c++) {
-                        //read the previous model
-                        ostringstream model;
-                        ss.clear();
-                        ss.str("");
-                        if (c == 0)
-                                ss << "Model" << fileName.substr(17, fileName.size() - 21);
-                        else
-                                ss << "Model" << fileName.substr(17, fileName.size() - 21)
-                                                << "_" << c;
-                        cout << "Answer: " << c + 1 << endl;
-                        ifstream in_file(ss.str().c_str());
-                        model << in_file.rdbuf();
-                        string ModelStr = model.str();
-                        in_file.close();
-                        istringstream iss(ModelStr);
-                        string line;
-                        getline(iss, line);
-
-                        //if the model is satisfiable, then get the atoms interpreted as true.
-                        if (line == "sat") {
-                                ss.clear();
-                                ss.str("");
-                                ss << " Answer set:";
-                                string CurVar = "";
-                                string CurVal = "";
-                                while (getline(iss, line)) {
-                                        //if a variable name is read, store it in curVar.
-                                        if (line.find("(define-fun ") != string::npos) {
-                                                int StartPos = line.find("(define-fun ");
-                                                int EndPos = line.find(" () ");
-                                                CurVar = line.substr(StartPos + 12,
-                                                                EndPos - StartPos - 12);
-                                        }
-
-                                        //if the variable is artessed to be true
-                                        if (line.find(" true)") != string::npos) {
-                                                if (CurVar.substr(0, 1) == "|") {
-                                                        if (!isdigit(CurVar[1])
-                                                                        && CurVar.find("cspvar") == string::npos
-                                                                        && CurVar.find("required(") == string::npos
-                                                                        && CurVar.find("cspdomain") == string::npos)
-                                                                ss << " "
-                                                                                << CurVar.substr(1,
-                                                                                                CurVar.length() - 2);
-                                                } else {
-                                                        if (!isdigit(CurVar[0])
-                                                                        && CurVar.find("cspvar") == string::npos
-                                                                        && CurVar.find("required(") == string::npos
-                                                                        && CurVar.find("cspdomain") == string::npos)
-                                                                ss << " " << CurVar;
-                                                }
-                                        }
-                                }
-
-                                cout << ss.str() << endl;
-                        } else
-                                return;
-
-                        //print extended answer sets when being invoked with -PrintExtAS flag
-                        if (param.PrintExtAS == true) {
-                                string CurVar = "";
-                                string CurVal = "";
-                                string temp = "";
-                                int c2 = 0;
-                                do {
-
-                                        //read the previous model
-                                        ostringstream model;
-                                        ss.clear();
-                                        ss.str("");
-                                        ss << "Model" << fileName.substr(17, fileName.size() - 21);
-                                        if (c != 0)
-                                                ss << "_" << c;
-                                        if (c2 != 0)
-                                                ss << "-" << c2;
-                                        ifstream in_file2(ss.str().c_str());
-
-                                        if (in_file2) {
-                                                ss.clear();
-                                                ss.str("");
-                                                cout << " Value Assignment " << c2 + 1 << ":" << endl
-                                                                << "  ";
-                                                model << in_file2.rdbuf();
-                                                string ModelStr = model.str();
-                                                in_file2.close();
-                                                istringstream extiss(ModelStr);
-                                                string line;
-                                                getline(extiss, line);
-                                                //if the model is satisfiable, then print
-                                                if (line == "sat") {
-                                                        stringstream liness;
-                                                        liness.clear();
-                                                        liness.str("");
-                                                        while (getline(extiss, line)) {
-                                                                //if a variable name is read, store it in curVar.
-                                                                if (line.find("(define-fun ") != string::npos) {
-                                                                        int StartPos = line.find("(define-fun ");
-                                                                        int EndPos = line.find(" () ");
-                                                                        CurVar = line.substr(StartPos + 12,
-                                                                                        EndPos - StartPos - 12);
-                                                                } else continue;
-
-                                                                //if it is a variable, store its value in curVal
-                                                                if (line.find(" Int") != string::npos || line.find(" Real") != string::npos) {
-                                                                        getline(extiss, line);
-
-                                                                        liness.clear();
-                                                                        liness.str(line);
-                                                                        getline(liness, CurVal, ' ');
-                                                                        getline(liness, CurVal, ' ');
-                                                                        getline(liness, CurVal, ' ');
-                                                                        getline(liness, CurVal, ' ');
-                                                                        getline(liness, CurVal, ' ');
-
-                                                                        //if it is a positive real number
-                                                                        if (CurVal[0] == '(' && CurVal[1] == '/') {
-                                                                                getline(liness, CurVal, ' ');
-                                                                                temp = CurVal;
-                                                                                getline(liness, CurVal, ')');
-                                                                                CurVal = "(/ " + temp + " " + CurVal
-                                                                                                + "))";
-                                                                        }
-
-                                                                        //if it is a negative number
-                                                                        if (CurVal[1] == '-') {
-                                                                                getline(liness, CurVal, ' ');
-
-                                                                                //if it is a negative real number
-                                                                                if (CurVal[0] == '('
-                                                                                                && CurVal[1] == '/') {
-                                                                                        getline(liness, CurVal, ' ');
-                                                                                        temp = CurVal;
-                                                                                        getline(liness, CurVal, ')');
-                                                                                        CurVal = "(/ " + temp + " " + CurVal
-                                                                                                        + ")))";
-                                                                                }
-
-                                                                                CurVal = CurVal.substr(0,
-                                                                                                CurVal.length() - 1);
-
-                                                                                CurVal = "-" + CurVal;
-                                                                        }
-                                                                } else continue;
-
-                                                                //print CurVar = CurVal;
-                                                                if (CurVar.substr(0, 1) == "|") {
-                                                                        if (!isdigit(CurVar[1])
-                                                                                        && CurVar.find("cspvar")
-                                                                                                        == string::npos
-                                                                                        && CurVar.find("required(")
-                                                                                                        == string::npos
-                                                                                        && (CurVar[1] != 'l'
-                                                                                                        || CurVar[2] != 'r')
-                                                                                        && CurVar.find("cspdomain")
-                                                                                                        == string::npos) {
-                                                                                ss << " "
-                                                                                                << CurVar.substr(1,
-                                                                                                                CurVar.length() - 2);
-                                                                                ss << " = "
-                                                                                                << CurVal.substr(0,
-                                                                                                                CurVal.length() - 1)
-                                                                                                << ";";
-                                                                        }
-                                                                } else if (!isdigit(CurVar[0])
-                                                                                && CurVar.find("cspvar") == string::npos
-                                                                                && CurVar.find("required(")
-                                                                                                == string::npos
-                                                                                && (CurVar[0] != 'l' || CurVar[1] != 'r')
-                                                                                && CurVar.find("cspdomain")
-                                                                                                == string::npos) {
-                                                                        ss << " " << CurVar;
-                                                                        ss << " = "
-                                                                                        << CurVal.substr(0,
-                                                                                                        CurVal.length() - 1) << ";";
-                                                                }
-
-                                                        }
-
-                                                        cout << ss.str() << endl;
-                                                        c2++;
-
-                                                } else
-                                                        break;
-                                        } else
-                                                break;
-                                } while (true);
-
-                        }
-
-                }
 }
 
 void Cmodels::eraseFalseAtomsFromClauses() {
@@ -2964,52 +2194,14 @@ inline void Cmodels::print_clauses() {
         program.print_clauses();
 }
 
-void Cmodels::print_output_for_sat() {
-        print_DIMACS();
-}
-
-void Cmodels::print_DIMACS() {
-        //creates cnf standard file for all sat solvers
-        unlink(param.dimacsFileName);
-        FILE* file = fopen(param.dimacsFileName, "w");
-
-        if (file) {
-                        fprintf(file, "smt cnf %d %d\n", program.number_of_atoms,
-                                        program.number_of_clauses);
-                        for (long indA = 0; indA < program.clauses.size(); indA++) {
-                                program.clauses[indA]->printsmtcnf(file);
-                        }
-                        cout << "---------" << endl;
-                
-        } else {
-                cerr << "Cmodels: Error while opening file " << param.dimacsFileName;
-                exit(20);
-        }
-        //clean memory from clauses that will no longer be of use
-        for (long indA = 0; indA < program.clauses.size(); indA++) {
-                        delete program.clauses[indA];
-        }
-        program.clauses.clear();
-
-        fclose(file);
-
-}
-
-void Cmodels::print_output_for_BCircuit() {
-
-        char gateName[256];
-
-        unlink(param.dimacsFileName);
-        FILE* file = fopen(param.dimacsFileName, "w");
-
-        if (file) {
-                fprintf(file, "BC1.0\n");
-                for (long indA = 0; indA < program.atoms.size(); indA++) {
-                        sprintf(gateName, "_atomcomp%ld\0", indA);
-                        program.atoms[indA]->printCompletionBCircuit(file, gateName);
-                }
-        }
-        fclose(file);
+char* Cmodels::print_output_for_sat() {
+    char *buff = (char*)malloc(64*1024);
+    char *ptr = buff;
+    ptr += sprintf(ptr, "smt cnf %d %d\n",
+                   program.number_of_atoms, program.number_of_clauses);
+    for (int indA = 0; indA < program.clauses.size(); indA++)
+            ptr += program.clauses[indA]->printsmtcnf(ptr);
+    return buff;
 }
 
 //At this point  rulesOfLoopsHeads[inLoop] must contain 
@@ -3517,102 +2709,6 @@ void Cmodels::addReasonClause(int* reason) {
         resetApi();
 }
 
-void Cmodels::setupFilenames() {
-
-        /* initialize random seed: */
-        srand(time(NULL));
-
-        sprintf(param.dimacsFileName, "%s%s%d%s", param.dirName,
-                        "dimacs-completion", rand(), ".out");
-        sprintf(param.solverOutputFileName, "%s%s%d%s", param.dirName,
-                        "solver-solution", rand(), ".out" "%s%s", param.dirName);
-
-        FILE* fconfig = NULL;
-        fconfig = fopen(param.config, "r");
-        int count = -10;
-        char s1[1024], s2[1024], chaffCommand[1024];
-        char relsat_loc[1024] = "./relsat";
-        char zchaff_loc[1024] = "./zchaff";
-        char bcircuit_loc[1024] = "./bcircuit ";
-        bool config_exist = true;
-        char path_to_config[1024];
-        bool empty_path = true;
-        if (fconfig == NULL) {
-                config_exist = false;
-                char path_to_cmodels[100];
-                int k = 0;
-                path_to_cmodels[k] = '\0';
-                int length = strlen(param.cmodelsname);
-                int l = length - 1;
-                while (l != -1 && param.cmodelsname[l] != '/') {
-                        l--;
-                }
-                if (l >= 0) {
-                        for (k = 0; k <= l; k++)
-                                path_to_cmodels[k] = param.cmodelsname[k];
-                        path_to_cmodels[k] = '\0';
-                }
-        } else {
-                int length = strlen(param.config);
-                int l = length - 1;
-                while (l != -1 && param.config[l] != '/') {
-                        l--;
-                }
-                if (l < 0)
-                        empty_path = true;
-                else {
-                        empty_path = false;
-                        int k;
-                        for (k = 0; k <= l; k++)
-                                path_to_config[k] = param.config[k];
-                        path_to_config[k] = '\0';
-                }
-
-                char temp[1024];
-
-                bool flag4relsat = false;
-                bool flag4zchaff = false;
-
-                while (count != EOF) {
-                        count = fscanf(fconfig, "%s", &temp[0]);
-                        if (!strcmp(temp, "relsat")) {
-                                count = fscanf(fconfig, "%s", &relsat_loc[0]);
-                                flag4relsat = true;
-                        }
-                        if (!strcmp(temp, "zchaff")) {
-                                count = fscanf(fconfig, "%s", &zchaff_loc[0]);
-                                flag4zchaff = true;
-                        }
-                }
-
-                if (!empty_path) {
-                        bool path_spec = false;
-                        length = strlen(relsat_loc);
-                        for (int k = 0; k < length; k++) {
-                                if (relsat_loc[k] == '/') {
-                                        path_spec = true;
-                                }
-                        }
-                        if (!path_spec) {
-                                char str2[1024];
-                                strcpy(str2, path_to_config);
-                                strcat(str2, relsat_loc);
-                                strcpy(relsat_loc, str2);
-                        }
-                }
-
-                fclose(fconfig);
-
-        }
-        char strtmp[1024];
-        unlink(param.solverOutputFileName);
-}
-
-Result Cmodels::call_satSolver() {
-        Result solverResult = (Result) UNKNOWN;
-        return solverResult;
-}
-
 //
 //Weight rules translation
 //
@@ -3934,38 +3030,6 @@ void Cmodels::printM() {
                 if ((*itrAtom)->inM) {
                         (*itrAtom)->print();
                         cout << " ";
-                }
-
-        }
-        cout << endl;
-}
-void Cmodels::printWFM() {
-
-        cout << endl << "POS: ";
-        for (vector<Atom*>::iterator itrAtom = program.atoms.begin();
-                        itrAtom != program.atoms.end(); ++itrAtom) {
-                if ((*itrAtom)->Bpos) {
-                        (*itrAtom)->printClean();
-
-                }
-
-        }
-
-        cout << endl << "NEG: ";
-        for (vector<Atom*>::iterator itrAtom = program.atoms.begin();
-                        itrAtom != program.atoms.end(); ++itrAtom) {
-                if ((*itrAtom)->Bneg) {
-                        (*itrAtom)->printClean();
-                }
-
-        }
-
-        cout << endl << "Cons: ";
-        for (vector<Atom*>::iterator itrAtom = program.atoms.begin();
-                        itrAtom != program.atoms.end(); ++itrAtom) {
-                if ((*itrAtom)->computeTrue && !(*itrAtom)->Bpos) {
-                        (*itrAtom)->printClean();
-
                 }
 
         }
