@@ -31,7 +31,7 @@
 #include "gringo/lexerstate.hh"
 #include "gringo/value.hh"
 #include "gringo/logger.hh"
-#include "src/input/nongroundgrammar.hh"
+#include "nongroundgrammar.hh"
 #include <cstddef>
 #include <climits>
 #include <memory>
@@ -346,5 +346,5 @@ NonGroundParser::~NonGroundParser() { }
 
 } } // namespace Input Gringo
 
-#include "src/input/nongroundlexer.hh"
+#include "nongroundlexer.hh"
 

@@ -19,7 +19,7 @@
 // }}}
 
 #include "gringo/input/groundtermparser.hh"
-#include "src/input/groundtermgrammar.hh"
+#include "groundtermgrammar.hh"
 
 namespace Gringo { namespace Input {
 
@@ -98,4 +98,4 @@ GroundTermParser::~GroundTermParser() { }
 
 } }
 
-#include "src/input/groundtermlexer.hh"
+#include "groundtermlexer.hh"
