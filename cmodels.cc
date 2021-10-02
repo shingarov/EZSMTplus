@@ -2194,8 +2194,9 @@ inline void Cmodels::print_clauses() {
         program.print_clauses();
 }
 
+static char buff[256*1024*1024];
+
 char* Cmodels::print_output_for_sat() {
-    char *buff = (char*)malloc(64*1024);
     char *ptr = buff;
     ptr += sprintf(ptr, "smt cnf %d %d\n",
                    program.number_of_atoms, program.number_of_clauses);
