@@ -64,7 +64,7 @@ protected:
   bool rec_weight_rule(Weight totalweight, 
 					   int sizeC, 
 					   Atom* headC,
-					   unsigned long atleast, 
+					   unsigned atleast, 
 					   int counter_body);
 
   

@@ -2714,7 +2714,7 @@ void Cmodels::addReasonClause(int* reason) {
 //
 
 bool Cmodels::rec_weight_rule(Weight totalweight, int sizeC, Atom* headC,
-                unsigned long atleast, int counter_body) {
+                unsigned atleast, int counter_body) {
 
         if (atleast > totalweight) { //no way to sat the recuirement
 
@@ -2727,7 +2727,7 @@ bool Cmodels::rec_weight_rule(Weight totalweight, int sizeC, Atom* headC,
 
                 return false;
         } else {
-                long curw = api->getPbodyWeights(counter_body);
+                int curw = api->getPbodyWeights(counter_body);
 
                 if (counter_body < api->sizeNbody()) {
                         curw = api->getNbodyWeights(counter_body);
@@ -2736,8 +2736,8 @@ bool Cmodels::rec_weight_rule(Weight totalweight, int sizeC, Atom* headC,
                         int pcounter = -api->sizeNbody() + counter_body;
                         curw = api->getPbodyWeights(pcounter);
                 }
-                long newtw = (unsigned long) (unsigned long) totalweight
-                                - (unsigned long) curw;
+                int newtw = (unsigned) totalweight
+                                - (unsigned) curw;
 
                 if (newtw >= atleast) {
 
@@ -2754,7 +2754,7 @@ bool Cmodels::rec_weight_rule(Weight totalweight, int sizeC, Atom* headC,
                         //BUG fixed in version 3.79
                         //        sprintf(stotal,"%ldx%ld",atleast,newtw);
                         //replaced by:
-                        sprintf(stotal, "%ldx%ldx%ld", atleast, newtw, counter_body + 1);
+                        sprintf(stotal, "%dx%dx%d", atleast, newtw, counter_body + 1);
                         Atom* at1 = api->wrmem.findAtom(stotal);
                         if (at1 == NULL) {
                                 at1 = api->new_atom();
@@ -2768,8 +2768,8 @@ bool Cmodels::rec_weight_rule(Weight totalweight, int sizeC, Atom* headC,
                         r->addPbody(0, at1);
                         r->finishRule();
                 }
-                long newatleast = (unsigned long) (unsigned long) atleast
-                                - (unsigned long) curw;
+                int newatleast = (unsigned) atleast
+                                - (unsigned) curw;
                 int n;
                 if (newatleast > 0 && newatleast <= newtw)
                         n = 2;
@@ -2798,7 +2798,7 @@ bool Cmodels::rec_weight_rule(Weight totalweight, int sizeC, Atom* headC,
                         //BUG fixed in version 3.79
                         //        sprintf(stotal,"%ldx%ld",newatleast,newtw);
                         //replaced by:
-                        sprintf(stotal, "%ldx%ldx%ld", newatleast, newtw, counter_body + 1);
+                        sprintf(stotal, "%dx%dx%d", newatleast, newtw, counter_body + 1);
                         Atom* at2 = api->wrmem.findAtom(stotal);
 
                         if (at2 == NULL) {

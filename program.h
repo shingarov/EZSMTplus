@@ -59,12 +59,12 @@ public:
   //Vector which will have all the clauses
   vector<Clause*> clauses;
 
-  long number_of_atoms;
+  int number_of_atoms;
   int number_of_rules;
   int number_of_complitions; 
-  long number_of_clauses;
-  long number_of_nestedRules;
-  long cmodelsAtomsFromThisId;
+  int number_of_clauses;
+  int number_of_nestedRules;
+  int cmodelsAtomsFromThisId;
 
   Atom* false_atom; // since we need to work with atom which stands for false
                     //differently creating it's completions false_atom is a pointer
