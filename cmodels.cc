@@ -26,17 +26,12 @@
 
 using namespace std;
 
-#define MAX_LINE_LENGTH    65536
-#define MAX_WORD_LENGTH    64
+#define numLFClauses 1
 
 Cmodels::Cmodels() {
-
         output.program = &program;
         output.param = &param;
-
-        satMngMinimality = 0;
         LRVarIDs.clear();
-
 }
 
 void Cmodels::initRuleLists4WF() {
@@ -2333,7 +2328,7 @@ void Cmodels::buildClausesOfLoopFormula(const vector<Atom*> & atomsSCC,
                 int counter = 0;
                 atomsMultiplication(rulesOfLoop, rulesOfLoop.size(), 0, counter,
                                 atomsSCC[0]->inLoop);
-                assert(counter <= param.numLFClauses);
+                assert(counter <= numLFClauses);
                 //clear api
                 resetApi();
 
@@ -2355,7 +2350,7 @@ inline void Cmodels::clauseFromApi() {
 
 void Cmodels::atomsMultiplication(const vector<NestedRule*> & rules,
                 const int& numRules, int curRule, int & counter, const int& inLoop) {
-        if (counter >= param.numLFClauses)
+        if (counter >= numLFClauses)
                 return;
         Atom* h;
         //
@@ -2381,14 +2376,14 @@ void Cmodels::atomsMultiplication(const vector<NestedRule*> & rules,
                                                         clauseFromApi();
                                                         counter++;
                                                         api->pop_body(false);
-                                                        if (counter >= param.numLFClauses)
+                                                        if (counter >= numLFClauses)
                                                                 return;
                                                 }
                                         } else {
                                                 if (!flag) {
                                                         clauseFromApi();
                                                         counter++;
-                                                        if (counter >= param.numLFClauses)
+                                                        if (counter >= numLFClauses)
                                                                 return;
                                                         flag = true;
                                                 }
@@ -2418,7 +2413,7 @@ void Cmodels::atomsMultiplication(const vector<NestedRule*> & rules,
                                                 else
                                                         api->pop_body(true);
 
-                                                if (counter >= param.numLFClauses)
+                                                if (counter >= numLFClauses)
                                                         return;
                                         } else if (!flag
                                                         && (((*a)->inClause == NEG
@@ -2427,7 +2422,7 @@ void Cmodels::atomsMultiplication(const vector<NestedRule*> & rules,
                                                                                         && a >= rules[curRule]->nend))) {
                                                 clauseFromApi();
                                                 counter++;
-                                                if (counter >= param.numLFClauses)
+                                                if (counter >= numLFClauses)
                                                         return;
                                                 flag = true;
                                         }
@@ -2449,7 +2444,7 @@ void Cmodels::atomsMultiplication(const vector<NestedRule*> & rules,
                                         api->pop_body(true);
                                 else
                                         api->pop_body(false);
-                                if (counter >= param.numLFClauses)
+                                if (counter >= numLFClauses)
                                         return;
 
                         } else if (!flag
@@ -2458,7 +2453,7 @@ void Cmodels::atomsMultiplication(const vector<NestedRule*> & rules,
 
                                 clauseFromApi();
                                 counter++;
-                                if (counter >= param.numLFClauses)
+                                if (counter >= numLFClauses)
                                         return;
                         }
                 }
@@ -2495,7 +2490,7 @@ void Cmodels::atomsMultiplication(const vector<NestedRule*> & rules,
                         || rules[curRule]->signReprComp == NOT_DEF) {
                 int i = 0;
                 while (i < rules[curRule]->sizeHead()) {
-                        if (counter >= param.numLFClauses)
+                        if (counter >= numLFClauses)
                                 return;
 
                         h = rules[curRule]->head[i];

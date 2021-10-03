@@ -16,7 +16,6 @@ class Param{
   bool rdcComp;
   bool mnmBd;
   bool wf;
-  bool nowellfounded;//skip well founded computation
   bool param;
   bool cm_wfm; //default 0 stops at prinitng WFM
   bool dir;
@@ -26,10 +25,8 @@ class Param{
   bool le;
   bool bmodes;
   bool shortr; 
-  int numLFClauses;
   //_________________
   Param(){
-	numLFClauses=1;
 	dir = false;
 	keep = false;
 	bt = false;
@@ -43,7 +40,6 @@ class Param{
 	wf   =true;
 	cm_wfm = false;
 	sort=false;
-	nowellfounded=false; 
   }
 }
 

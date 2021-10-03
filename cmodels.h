@@ -48,8 +48,6 @@ public:
   vector<int> LRVarIDs;//stores all the IDs of Level Ranking Variables in order to add cspvar(lr)
   	  	  	  	  	   //LRVarIDs[ID]=1, if the Level Ranking Variable with this ID exists
 
-  void * satMngMinimality;
-
   //we need these in case if sat solver is called from outside
   char command[512];
 
