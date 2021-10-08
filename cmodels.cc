@@ -1294,7 +1294,7 @@ void Cmodels::createRankingFormula() {
                         ss.clear();
                         ss.str("");
                         ss << i;
-                        string varName("cspvar(lr");
+                        string varName("cspvar(ezsmt_levelrank_");
                         varName += ss.str();
                         varName += ",1,";
                         varName += NumOfAtom;
@@ -1519,7 +1519,7 @@ void Cmodels::createSCCRankingFormula() {
                         ss.clear();
                         ss.str("");
                         ss << i;
-                        string varName("cspvar(lr");
+                        string varName("cspvar(ezsmt_levelrank_");
                         varName += ss.str();
                         varName += ",1,";
 
@@ -1639,11 +1639,14 @@ Atom * Cmodels::createAuxAtom2(Atom * head, NestedRule * cr) {
                         //if b is in heads of rules, we add level ranking variable
                         idStream.clear();
                         Atom *rankingVar = api->new_atom();
-                        string varName("required(ezcsp__geq(ezcsp__pl(lr");
+                        string varName(
+// (>= (+ lrX -1) lrY)
+"ezcsp_required(ezcsp_appl(ezcsp_escape_003E003D,ezcsp_appl(ezcsp_escape_002B,ezsmt_levelrank_"
+                                       );
                         idStream.str("");
                         idStream << (*cr->head)->id;
                         varName += idStream.str();
-                        varName += ",-1),lr";
+                        varName += ",-1),ezsmt_levelrank_";
                         idStream.str("");
                         idStream << (*b)->id;
                         varName += idStream.str();
@@ -1691,11 +1694,14 @@ void Cmodels::createAuxAtomSCC(NestedRule* cr, list<Atom*>* SCC) {
                         recursive = true;
                         idStream.clear();
                         Atom *rankingVar = api->new_atom();
-                        string varName("required(ezcsp__geq(ezcsp__pl(lr");
+                        string varName(
+// (>= (+ lrX -1) lrY)
+"ezcsp_required(ezcsp_appl(ezcsp_escape_003E003D,ezcsp_appl(ezcsp_escape_002B,ezsmt_levelrank_"
+                                       );
                         idStream.str("");
                         idStream << (*cr->head)->id;
                         varName += idStream.str();
-                        varName += ",-1),lr";
+                        varName += ",-1),ezsmt_levelrank_";
                         idStream.str("");
                         idStream << (*b)->id;
                         varName += idStream.str();
@@ -1810,11 +1816,13 @@ void Cmodels::createStrongRankingFormula(long curAtomsSize, string NumOfAtom) {
                                         for (Atom ** b = cr->pbody; b != cr->pend; b++) {
                                                 idStream.clear();
                                                 Atom *rankingVar = api->new_atom();
-                                                string varName("required(ezcsp__geq(ezcsp__pl(lr");
+                                                string varName(
+"ezcsp_required(ezcsp_appl(ezcsp_escape_003E003D,ezcsp_appl(ezcsp_escape_002B,ezsmt_levelrank_"
+                                                               );
                                                 idStream.str("");
                                                 idStream << (*b)->id;
                                                 varName += idStream.str();
-                                                varName += ",1),lr";
+                                                varName += ",1),ezsmt_levelrank_";
                                                 idStream.str("");
                                                 idStream << (*cr->head)->id;
                                                 varName += idStream.str();
@@ -1837,7 +1845,8 @@ void Cmodels::createStrongRankingFormula(long curAtomsSize, string NumOfAtom) {
                                         Atom *rankingVar = api->new_atom();
                                         idStream.clear();
                                         idStream.str("");
-                                        string varName("required(ezcsp__eq(lr");
+                                        string varName(
+"ezcsp_required(ezcsp_appl(ezcsp_escape_003D003D003D,ezsmt_levelrank_");
                                         idStream << curAtom->id;
                                         varName += idStream.str();
                                         varName += ",1))";
@@ -1901,11 +1910,14 @@ void Cmodels::createStrongSCCRankingFormulaCondition3(
                                                 if (intersect) {
                                                         idStream.clear();
                                                         Atom *rankingVar = api->new_atom();
-                                                        string varName("required(ezcsp__geq(ezcsp__pl(lr");
+                                                        string varName(
+// (>= (+ lrX -1) lrY)
+"ezcsp_required(ezcsp_appl(ezcsp_escape_003E003D,ezcsp_appl(ezcsp_escape_002B,ezsmt_levelrank_"
+                                                                       );
                                                         idStream.str("");
                                                         idStream << (*b)->id;
                                                         varName += idStream.str();
-                                                        varName += ",1),lr";
+                                                        varName += ",1),ezsmt_levelrank_";
                                                         idStream.str("");
                                                         idStream << (*cr->head)->id;
                                                         varName += idStream.str();
